@@ -21,6 +21,12 @@ class ApiCom {
 		this._token = token;
 		this._username = username;
 		this._base_url = 'https://api.spacetraders.io';
+		this.axios_client = axios.create({
+			baseURL:this._base_url,
+			headers:{
+				'Authorization':this._token
+			}
+		});
 	}
 
 	get getToken() {
@@ -37,7 +43,6 @@ class ApiCom {
 	}
 	/**
 	 * Gets the status of game servers
-	 * @returns - The http response. (I will convert to a discord embed later)
 	 */
 	async getStatus() {
 		const res = await axios({
@@ -50,72 +55,48 @@ class ApiCom {
 	}
 	/**
 	 * Gets the users account
-	 * @returns - The Users account information as http data (will convert to discord embed later)
 	 */
 	async getAccount() {
-		const res = await axios({
-			method:'get',
-			url:this._base_url + '/my/account',
-			headers:{
-				'Authorization':this._token
-			}
-		});
-		console.log(res.data);
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/my/account',
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res);
 	}
 	/**
 	 * buy a thing
 	 * @param {String} locationSymbol - Location of the ship
 	 * @param {String} shipSymbol - symbol of the ship to buy
-	 * @returns - http response (will convert to discord embed later)
 	 */
-	// async buyShip(locationSymbol, shipSymbol) {
-	// 	const res = await axios({
-	// 		method:'POST',
-	// 		url:`${this._base_url}/my/ships`,
-	// 		headers:{
-	// 			'Authorization':this._token
-	// 		},
-	// 		params:{
-	// 			location:locationSymbol,
-	// 			type:shipSymbol
-	// 		},
-	// 		paramsSerializer: params => {
-	// 			return qs.stringify(params);
-	// 		}
-	// 	})
-	// 		.catch(err => { throw new Error(err.response.data.error.message); });
-	// 	console.log(res);
-	// }
 	async buyShip(locationSymbol, shipSymbol) {
-		const res = await axios.post(`${this._base_url}/my/ships`, {}, {
-			headers:{
-				'Authorization':this._token
-			},
+		const res = await axios({
+			method:'POST',
+			url:'/my/ships',
 			params:{
-				'location':locationSymbol,
-				'type':shipSymbol
+				location:locationSymbol,
+				type:shipSymbol
 			},
 			paramsSerializer: params => {
 				return qs.stringify(params);
 			}
 		})
 			.catch(err => { throw new Error(err.response.data.error.message); });
-		console.log(res);
+		console.log(res.data);
 	}
+	
 
 	/**
 	 * Gets information on a system
 	 * @param {String} symbol - symbol of system
 	 */
 	async getSystemInfo(symbol) {
-		const res = await axios.get(`${this._base_url}/systems/${symbol.toUpperCase()}`, {
-			headers:{
-				'Authorization':this._token
-			}
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/systems/${symbol.toUpperCase()}`
 		})
-			.then(res => { return res; })
-			.catch(err => { throw err; });
-		return res;
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res.data);
 	}
 	/**
 	 * Gets the ship listings of the system
@@ -129,25 +110,24 @@ class ApiCom {
 		}
 		const res = await axios({
 			method:'get',
-			url:`${this._base_url}/systems/${symbol.toUpperCase()}/ship-listings`,
-			headers:{
-				'Authorization':this._token
-			},
+			url:`/systems/${symbol.toUpperCase()}/ship-listings`,
 			params:{
 				'class':ship_class
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
 			}
 		})
 			.catch(err => { throw new Error(err.response.data.error.message); });
 		console.log(res.data);
 	}
-
+	/**
+	 * Gets the users ships
+	 */
 	async getUserShips() {
 		const res = await axios({
 			method:'get',
-			url:`${this._base_url}/my/ships`,
-			headers:{
-				'Authorization':this._token
-			}
+			url:'/my/ships',
 		});
 		console.log(res.data);
 	}
@@ -155,15 +135,11 @@ class ApiCom {
 	 * Gets the buy location of the ship specifed in the system
 	 * @param {String} symbol - symbol of the ship to look for
 	 * @param {String} system - system to look in
-	 * @returns - Array containing the Listings as objects
 	 */
 	async getBuyLocation(symbol, system) {
 		const res = await axios({
 			method: 'get',
-			url:`${this._base_url}/systems/${system}/ship-listings`,
-			headers:{
-				'Authorization':this._token
-			}
+			url:`/systems/${system}/ship-listings`,
 		})
 			.catch(err => { throw new Error(err.response.data.error.message);});
 		
@@ -190,12 +166,12 @@ class ApiCom {
 		}
 		const res = await axios({
 			method:'get',
-			url:`${this._base_url}/types/ships`,
-			headers:{
-				'Authorization':this._token
-			},
+			url:'/types/ships',
 			params:{
-				class:ship_class
+				'class':ship_class
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
 			}
 		})
 			.catch(err => { throw new Error(err.response.data.error.message); });

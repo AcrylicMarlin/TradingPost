@@ -10,7 +10,9 @@ com.getStatus().catch(err => { console.log(err.message); });
 
 // com.getSystemShipListings('OE', 'MK-I').catch(err => { console.log(err.message); });
 // com.getBuyLocation('EM-MK-I', 'OE').catch(err => { console.log(err.message); });
-com.buyShip('OE-PM-TR', 'EM-MK-I').catch(err => { console.log(err.message); });
+// com.buyShip('OE-PM-TR', 'EM-MK-I').catch(err => { console.log(err.message); });
 // com.getUserShips().catch(err => { console.log(err.message); });
 // com.getAccount().catch(err => { console.log(err.message); });
 // com.getAvailableShips('MK-I').catch(err => { console.log(err.message); });
+// com.getAccount().catch(err => { console.log(err.message); });
+com.getSystemInfo('OE').catch(err => { console.log(err.message); });
