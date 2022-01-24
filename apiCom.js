@@ -66,16 +66,16 @@ class ApiCom {
 	}
 	/**
 	 * buy a thing
-	 * @param {String} locationSymbol - Location of the ship
-	 * @param {String} shipSymbol - symbol of the ship to buy
+	 * @param {String} location_symbol - Location of the ship
+	 * @param {String} ship_symbol - symbol of the ship to buy
 	 */
-	async buyShip(locationSymbol, shipSymbol) {
+	async buyShip(location_symbol, ship_symbol) {
 		const res = await axios({
 			method:'POST',
 			url:'/my/ships',
 			params:{
-				location:locationSymbol,
-				type:shipSymbol
+				location:location_symbol,
+				type:ship_symbol
 			},
 			paramsSerializer: params => {
 				return qs.stringify(params);
@@ -160,6 +160,10 @@ class ApiCom {
 	
 		
 	}
+	/**
+	 * Gets all available ships
+	 * @param {String} ship_class - Sort by class (optional)
+	 */
 	async getAvailableShips(ship_class) {
 		if (typeof ship_class === 'undefined') {
 			ship_class = null;
@@ -178,6 +182,65 @@ class ApiCom {
 
 		console.log(res.data);
 	}
+	/**
+	 * Gets information on given ship
+	 * @param {String} shipID - actual id of the ship 
+	 */
+	async getShipInfo(shipID) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/my/ships/${shipID}`
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res.data);
+	}
+	/**
+	 * Gets users ships
+	 */
+	async getShips() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/my/ships'
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res.data);
+	}
+
+	async getUserLoans() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/my/loans'
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		
+		console.log(res.data);
+	}
+
+	async takeLoan(type) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:'/my/loans',
+			params:{
+				type:type.toUpperCase()
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res.data);
+	}
+
+	async getLoans() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/types/loans'
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+
+		console.log(res.data);
+	}
+	
 	
 }
 
