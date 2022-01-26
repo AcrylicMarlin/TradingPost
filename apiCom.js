@@ -41,6 +41,10 @@ class ApiCom {
 	set setUsername(username) {
 		this._username = username;
 	}
+
+
+	//Miscellaneous Requests
+
 	/**
 	 * Gets the status of game servers
 	 */
@@ -64,6 +68,27 @@ class ApiCom {
 			.catch(err => { throw new Error(err.response.data.error.message); });
 		console.log(res);
 	}
+
+
+
+
+	// System Requests
+
+	/**
+	 * Gets information on a system
+	 * @param {String} symbol - symbol of system
+	 */
+	async getSystemInfo(symbol) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/systems/${symbol.toUpperCase()}`
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		console.log(res.data);
+	}
+
+	// Ship Requests
+
 	/**
 	 * buy a thing
 	 * @param {String} location_symbol - Location of the ship
@@ -84,20 +109,8 @@ class ApiCom {
 			.catch(err => { throw new Error(err.response.data.error.message); });
 		console.log(res.data);
 	}
-	
 
-	/**
-	 * Gets information on a system
-	 * @param {String} symbol - symbol of system
-	 */
-	async getSystemInfo(symbol) {
-		const res = await this.axios_client.request({
-			method:'GET',
-			url:`/systems/${symbol.toUpperCase()}`
-		})
-			.catch(err => { throw new Error(err.response.data.error.message); });
-		console.log(res.data);
-	}
+
 	/**
 	 * Gets the ship listings of the system
 	 * @param {String} symbol - Symbol of system
@@ -206,6 +219,14 @@ class ApiCom {
 		console.log(res.data);
 	}
 
+
+
+	// Loans Requests
+
+
+	/**
+	 * get loans you have taken out
+	 */
 	async getUserLoans() {
 		const res = await this.axios_client.request({
 			method:'GET',
@@ -216,6 +237,11 @@ class ApiCom {
 		console.log(res.data);
 	}
 
+
+	/**
+	 * Take a loan
+	 * @param {string} type - Type of loan to take
+	 */
 	async takeLoan(type) {
 		const res = await this.axios_client.request({
 			method:'POST',
@@ -230,7 +256,9 @@ class ApiCom {
 			.catch(err => { throw new Error(err.response.data.error.message); });
 		console.log(res.data);
 	}
-
+	/**
+	 * get all loans available
+	 */
 	async getLoans() {
 		const res = await this.axios_client.request({
 			method:'GET',
@@ -238,6 +266,20 @@ class ApiCom {
 		})
 			.catch(err => { throw new Error(err.response.data.error.message); });
 
+		console.log(res.data);
+	}
+
+	/**
+	 * 
+	 * @param {string} loanID - id of the loan (NOT TYPE)
+	 */
+	async payLoan(loanID) {
+		const res = await this.axios_client.request({
+			method:'PUT',
+			url:`/my/loans/${loanID}`,
+		})
+			.catch(err => { throw new Error(err.response.data.error.message); });
+		
 		console.log(res.data);
 	}
 	
