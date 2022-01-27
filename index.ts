@@ -1,12 +1,9 @@
-/* eslint-disable @typescript-eslint/no-var-requires */
-const { ApiCom } = require('./apiCom');
-
 const token = 'Bearer 32f01f32-ec1e-4be5-8c7d-1e8e0cc56da1';
 const username = 'SadLonelyGamer';
 
-let com = new ApiCom(token, username);
+const com = new ApiCom(token, username);
 
-com.getStatus().catch(err => { console.log(err.message); });
+com.getStatus().catch(err => { console.warn(err.message); });
 
 // com.getSystemShipListings('OE', 'MK-I').catch(err => { console.log(err.message); });
 // com.getBuyLocation('EM-MK-I', 'OE').catch(err => { console.log(err.message); });
@@ -21,3 +18,14 @@ com.getStatus().catch(err => { console.log(err.message); });
 // com.getUserLoans().catch(err => { console.warn(err.message); });
 // com.getLoans().catch(err => { console.log(err.message); });
 // com.takeLoan('STARTUP').catch(err => { console.log(err.message); });
+// com.payLoan('ckydjoxd4102674115s6l5skc2l4').catch(err => console.log(err.message));
+com.getSystemLocations('Os');
+com.emitter.on('error', (err:Error) => {
+	console.log(err.message);
+});
+com.emitter.on('httpError', err => {
+	console.log(err.response.data.err.message);
+});
+
+
+
