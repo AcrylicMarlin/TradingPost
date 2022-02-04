@@ -13,13 +13,14 @@ const { EventEmitter } = require('events');
  * @author - Justin Cardenas
  * @version - 1.0.0
  */
-class ApiCom {
+class ApiCom extends EventEmitter {
 	/**
 	 * Builds the api communicator for SpaceTraders
 	 * @param {String} token - The Bearer token of the user
 	 * @param {String} username - Username of the user
 	 */
 	constructor(token, username) {
+		super();
 		this._token = token;
 		this._username = username;
 		this._base_url = 'https://api.spacetraders.io';
@@ -29,7 +30,6 @@ class ApiCom {
 				'Authorization': this._token
 			}
 		});
-		this.emitter = new EventEmitter();
 	}
 	get getToken() {
 		return this._token;
@@ -52,10 +52,8 @@ class ApiCom {
 			method: 'get',
 			url: `${this._base_url}/game/status`
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(`http code: ${res.status}\nStatus: ${res.data.status}`);
 	}
 	/**
@@ -66,42 +64,79 @@ class ApiCom {
 			method: 'GET',
 			url: '/my/account',
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 
-		if (!res) {
-			return;
-		}
+		if (!res) return;
 		console.log(res.data);
 	}
+
+
 	// System Requests
 	/**
 	 * Gets information on a system
-	 * @param symbol - symbol of system
+	 * @param {string} symbol - symbol of system
 	 */
 	async getSystemInfo(symbol) {
 		const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/systems/${symbol.toUpperCase()}`
 		})
-			.catch(err => { this.emitter.emit('error',new Error(err.response.data.error.message)); return false; });
+			.catch(err => { this.emit('error',new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
+	/**
+	 * Gets the locations in a system
+	 * @param {string} symbol - symbol of location
+	 */
 	async getSystemLocations(symbol) {
 		const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/systems/${symbol}/locations`
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
+	/**
+	 * Gets all of the flight plans
+	 * @param {string} symbol - Symbol of the system 
+	 */
+	async getFlightsInSystem(symbol) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/systems/${symbol}/flight-plans`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets all of the docked ships in a system
+	 * @param {string} symbol - Symbol of the system
+	 */
+	async getDockedShipsInSystem(symbol) {
+		const res = this.axios_client.request({
+			method:'GET',
+			url:`/systems/${symbol}/ships`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+
+
+
+
+
+
+
 	// Ship Requests
 	/**
 	 * buy a thing
-	 * @param location_symbol - Location of the ship
-	 * @param ship_symbol - symbol of the ship to buy
+	 * @param {string} location_symbol - Location of the ship
+	 * @param {string} ship_symbol - symbol of the ship to buy
 	 */
 	async buyShip(location_symbol, ship_symbol) {
 		const res = await axios({
@@ -115,16 +150,14 @@ class ApiCom {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
 	 * Gets the ship listings of the system
-	 * @param symbol - Symbol of system
-	 * @param ship_class - Class of ships (defaults to null)
+	 * @param {string} symbol - Symbol of system
+	 * @param {string} ship_class - Class of ships (defaults to null)
 	 * @returns - http request
 	 */
 	async getSystemShipListings(symbol, ship_class) {
@@ -141,10 +174,8 @@ class ApiCom {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
@@ -154,23 +185,23 @@ class ApiCom {
 		const res = await axios({
 			method: 'get',
 			url: '/my/ships',
-		});
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
 	 * Gets the buy location of the ship specifed in the system
-	 * @param symbol - symbol of the ship to look for
-	 * @param system - system to look in
+	 * @param {string} symbol - symbol of the ship to look for
+	 * @param {string} system - system to look in
 	 */
 	async getBuyLocation(symbol, system) {
 		const res = await axios({
 			method: 'get',
 			url: `/systems/${system}/ship-listings`,
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 
 		let i = 0;
 		for (const listing of res.data.shipListings) {
@@ -183,12 +214,12 @@ class ApiCom {
 			}
 		}
 		if (i === 0) {
-			this.emitter.emit('error', new Error('This ship does not exist'));
+			this.emit('error', new Error('This ship does not exist'));
 		}
 	}
 	/**
 	 * Gets all available ships
-	 * @param ship_class - Sort by class (optional)
+	 * @param {string} ship_class - Sort by class (optional)
 	 */
 	async getAvailableShips(ship_class) {
 		if (typeof ship_class === 'undefined') {
@@ -204,25 +235,21 @@ class ApiCom {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
 	 * Gets information on given ship
-	 * @param shipID - actual id of the ship
+	 * @param {string} shipID - actual id of the ship
 	 */
 	async getShipInfo(shipID) {
 		const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/my/ships/${shipID}`
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
@@ -233,10 +260,60 @@ class ApiCom {
 			method: 'GET',
 			url: '/my/ships'
 		})
-			.catch(err => { this.emitter.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Jettisons cargo into space
+	 * @param {string} id - ID of ship
+	 * @param {string} good - Symbol of the good
+	 * @param {number} quantity - Amount of goods to jettison
+	 */
+	async jettison(id, good, quantity) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:`/my/ships/${id}/jettison`,
+			params:{
+				good:good,
+				quantity:quantity
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Scraps ship for credits
+	 * @param {string} id - ID of ship
+	 */
+	async scrap(id) {
+		const res = await this.axios_client.request({
+			method:'DELETE',
+			url:`/my/ships/${id}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	async transfer(fromID, toID, good, quantity) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:`/my/ships/${fromID}/transfer`,
+			params:{
+				toShipID:toID,
+				good:good,
+				quantity:quantity
+			},
+			paramsSerializer:params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	// Loans Requests
@@ -248,15 +325,13 @@ class ApiCom {
 			method: 'GET',
 			url: '/my/loans'
 		})
-			.catch(err => { this.emitter.emit('httpError', err); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('httpError', err); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
 	 * Take a loan
-	 * @param type - Type of loan to take
+	 * @param {string} type - Type of loan to take
 	 */
 	async takeLoan(type) {
 		const res = await this.axios_client.request({
@@ -269,10 +344,8 @@ class ApiCom {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emitter.emit('httpError', err); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('httpError', err); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
@@ -283,27 +356,30 @@ class ApiCom {
 			method: 'GET',
 			url: '/types/loans'
 		})
-			.catch(err => { this.emitter.emit('httpError', err); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('httpError', err); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
 	/**
 	 *
-	 * @param loanID - id of the loan (NOT TYPE)
+	 * @param {string} loanID - id of the loan (NOT TYPE)
 	 */
 	async payLoan(loanID) {
 		const res = await this.axios_client.request({
 			method: 'PUT',
 			url: `/my/loans/${loanID}`,
 		})
-			.catch(err => { this.emitter.emit('httpError', err); return false; });
-		if (!res) {
-			return;
-		}
+			.catch(err => { this.emit('httpError', err); return false; });
+		if (!res) return;
 		console.log(res.data);
 	}
+
+	
+	
+
+
+
+	
 }
 
 module.exports = {

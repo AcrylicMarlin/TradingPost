@@ -9,7 +9,7 @@ com.getStatus();
 // com.getBuyLocation('EM-MK-I', 'OE').catch(err => { console.log(err.message); });
 // com.buyShip('OE-PM-TR', 'EM-MK-I').catch(err => { console.log(err.message); });
 // com.getUserShips().catch(err => { console.log(err.message); });
-com.getAccount();
+// com.getAccount();
 // com.getAvailableShips('MK-I').catch(err => { console.log(err.message); });
 // com.getAccount().catch(err => { console.log(err.message); });
 // com.getSystemInfo('OE').catch(err => { console.log(err.message); });
@@ -19,7 +19,7 @@ com.getAccount();
 // com.getLoans().catch(err => { console.log(err.message); });
 // com.takeLoan('STARTUP').catch(err => { console.log(err.message); });
 // com.payLoan('ckydjoxd4102674115s6l5skc2l4').catch(err => console.log(err.message));
-// com.getSystemLocations('Os');
-com.emitter.on('error', (err) => {
+com.getSystemLocations('Os');
+com.on('error', (err) => {
 	console.log(err.message);
 });
