@@ -217,28 +217,7 @@ class ApiCom extends EventEmitter {
 			this.emit('error', new Error('This ship does not exist'));
 		}
 	}
-	/**
-	 * Gets all available ships
-	 * @param {string} ship_class - Sort by class (optional)
-	 */
-	async getAvailableShips(ship_class) {
-		if (typeof ship_class === 'undefined') {
-			ship_class = null;
-		}
-		const res = await axios({
-			method: 'get',
-			url: '/types/ships',
-			params: {
-				'class': ship_class
-			},
-			paramsSerializer: params => {
-				return qs.stringify(params);
-			}
-		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		console.log(res.data);
-	}
+
 	/**
 	 * Gets information on given ship
 	 * @param {string} shipID - actual id of the ship
@@ -348,18 +327,7 @@ class ApiCom extends EventEmitter {
 		if (!res) return;
 		console.log(res.data);
 	}
-	/**
-	 * get all loans available
-	 */
-	async getLoans() {
-		const res = await this.axios_client.request({
-			method: 'GET',
-			url: '/types/loans'
-		})
-			.catch(err => { this.emit('httpError', err); return false; });
-		if (!res) return;
-		console.log(res.data);
-	}
+
 	/**
 	 *
 	 * @param {string} loanID - id of the loan (NOT TYPE)
@@ -379,7 +347,240 @@ class ApiCom extends EventEmitter {
 
 
 
-	
+	// Location Requests
+	/**
+	 * Gets Location Info
+	 * @param {string} location - location symbol
+	 */
+	async getLocationInfo(location) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/locations/${location}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets all ships docked at location
+	 * @param {string} location - Location symbol
+	 */
+	async getLocationShips(location) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/locations/${location}/ships`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets the marketplace listings for a location
+	 * @param {string} location - Location symbol
+	 * @returns 
+	 */
+	async getLocationMarket(location) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/locations/${location}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return false;
+		console.log(res.data);
+	}
+
+	// Types Requests
+	/**
+	 * Gets all available ships
+	 * @param {string} ship_class - Sort by class (optional)
+	 */
+	async getAvailableShips(ship_class) {
+		if (typeof ship_class === 'undefined') {
+			ship_class = null;
+		}
+		const res = await axios({
+			method: 'get',
+			url: '/types/ships',
+			params: {
+				'class': ship_class
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+
+	/**
+	 * Gets all goods
+	 */
+	async getGoodsTypes() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'types/goods'
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false;});
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets all structures
+	 */
+	async getStructures() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/types/structures'
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * get all loans available
+	 */
+	async getLoans() {
+		const res = await this.axios_client.request({
+			method: 'GET',
+			url: '/types/loans'
+		})
+			.catch(err => { this.emit('httpError', err); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+
+	// Structure requests
+	async buyStructure(location, type) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:'/my/structures',
+			params:{
+				location:location,
+				type:type
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Deposits goods to a structure from a ship
+	 * @param {string} structure - Strucuture ID
+	 * @param {string} ship - Ship's ID
+	 * @param {string} good - Type of good
+	 * @param {number|string} quantity - Quantity of transfer
+	 */
+	async depositToOwnStructure(structure, ship, good, quantity) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:`/my/structures/${structure}/deposit`,
+			params:{
+				shipId:ship,
+				good:good,
+				quantity:quantity
+			},
+			paramsSerializer:params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Deposits goods to a structure from a ship
+	 * @param {string} structure - Strucuture ID
+	 * @param {string} ship - Ship's ID
+	 * @param {string} good - Type of good
+	 * @param {number|string} quantity - Quantity of transfer
+	 */
+	async depositToAStructure(structure, ship, good, quantity) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/structures/${structure}/deposit`,
+			params:{
+				shipId:ship,
+				good:good,
+				quantity:quantity
+			},
+			paramsSerializer:params => {
+				return qs.stringify(params);
+			}
+
+		})
+			.catch(err => { this.emit('error', new Error(err.reponse.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets information about a structure
+	 * @param {string} structure - Structure's ID
+	 */
+	async getStructureInfo(structure) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/structures/${structure}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Transfers goods from the structure to the ship
+	 * @param {string} structure - Structure's ID
+	 * @param {string} ship - Ship's ID
+	 * @param {string} good - Type of good
+	 * @param {number|string} quantity - quantity to transfer
+	 */
+	async transferGoods(structure, ship, good, quantity) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:`/my/structures/${structure}/transfer`,
+			params:{
+				shipId:ship,
+				good:good,
+				quantity:quantity
+			},
+			paramsSerializer: params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * 
+	 * @param {string} structure 
+	 * @returns 
+	 */
+	async getOwnedStructureInfo(structure) {
+		const res = this.axios_client.request({
+			method:'GET',
+			url:`/my/structures/${structure}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * Gets information on all owned structures
+	 */
+	async getOwnedStructures() {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:'/my/structures'
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+
 }
 
 module.exports = {
