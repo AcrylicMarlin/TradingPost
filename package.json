@@ -1,13 +1,13 @@
 {
-  "name": "traderjoe",
+  "name": "apicom",
   "version": "1.0.0",
   "description": "Discord bot to interact with the SpaceTradersAPI",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "AcrylicMarlin",
+  "license": "MIT",
   "dependencies": {
     "axios": "^0.24.0",
     "https": "^1.0.0",
@@ -20,5 +20,18 @@
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
     "eslint": "^8.7.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AcrylicMarlin/TraderJoe.git"
+  },
+  "keywords": [
+    "api",
+    "wrapper",
+    "spacetraders"
+  ],
+  "bugs": {
+    "url": "https://github.com/AcrylicMarlin/TraderJoe/issues"
+  },
+  "homepage": "https://github.com/AcrylicMarlin/TraderJoe#readme"
 }

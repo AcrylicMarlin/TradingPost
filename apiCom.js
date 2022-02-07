@@ -10,6 +10,8 @@ const { EventEmitter } = require('events');
  * ApiCom
  * The communicator for the spacetraders api
  * (For use with discord.js)
+ * It is noted that errors are thrown using an 'error' event,
+ * so you should the client.on to catch them. 
  * @author - Justin Cardenas
  * @version - 1.0.0
  */
@@ -54,7 +56,8 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(`http code: ${res.status}\nStatus: ${res.data.status}`);
+		console.log(res.data);
+		console.log(typeof res.data);
 	}
 	/**
 	 * Gets the users account
@@ -575,6 +578,59 @@ class ApiCom extends EventEmitter {
 		const res = await this.axios_client.request({
 			method:'GET',
 			url:'/my/structures'
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	// Flight plan commands
+	/**
+	 * Gets information on a flight plan
+	 * @param {string} flight_plan - ID of the flight plan
+	 */
+	async getFlightPlanInfo(flight_plan) {
+		const res = await this.axios_client.request({
+			method:'GET',
+			url:`/my/flight-plans/${flight_plan}`
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+	/**
+	 * 
+	 * @param {string} destination - Symbol of the loction to travel to
+	 * @param {string} ship - ID of the ship for travel
+	 */
+	async startFlight(destination, ship) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:'my/flight-plans',
+			params:{
+				shipId:ship,
+				destination:destination
+			},
+			paramsSerializer:params => {
+				return qs.stringify(params);
+			}
+		})
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+		if (!res) return;
+		console.log(res.data);
+	}
+
+
+	//Warp Jump Requests
+	async attemptWarp(ship) {
+		const res = await this.axios_client.request({
+			method:'POST',
+			url:'/my/warp-jumps',
+			params:{
+				shipId:ship,
+			},
+			paramsSerializer:params => {
+				return qs.stringify(params);
+			}
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;

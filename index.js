@@ -19,7 +19,7 @@ com.getStatus();
 // com.getLoans().catch(err => { console.log(err.message); });
 // com.takeLoan('STARTUP').catch(err => { console.log(err.message); });
 // com.payLoan('ckydjoxd4102674115s6l5skc2l4').catch(err => console.log(err.message));
-com.getSystemLocations('Os');
+// com.getSystemLocations('Os');
 com.on('error', (err) => {
 	console.log(err.message);
 });
