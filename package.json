@@ -1,7 +1,7 @@
 {
-  "name": "apicom",
+  "name": "st-api-com",
   "version": "1.0.0",
-  "description": "Discord bot to interact with the SpaceTradersAPI",
+  "description": "API Wrapper written in JS for the SpaceTraders API",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,20 +10,11 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.24.0",
-    "https": "^1.0.0",
-    "node-fetch": "^3.1.0",
-    "qs": "^6.10.3",
-    "typescript": "^4.5.5"
-  },
-  "devDependencies": {
-    "@types/node": "^17.0.13",
-    "@typescript-eslint/eslint-plugin": "^5.10.0",
-    "@typescript-eslint/parser": "^5.10.0",
-    "eslint": "^8.7.0"
+    "qs": "^6.10.3"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AcrylicMarlin/TraderJoe.git"
+    "url": "git+https://github.com/AcrylicMarlin/APICOM.git"
   },
   "keywords": [
     "api",
@@ -31,7 +22,8 @@
     "spacetraders"
   ],
   "bugs": {
-    "url": "https://github.com/AcrylicMarlin/TraderJoe/issues"
+    "url": "https://github.com/AcrylicMarlin/APICOM/issues"
   },
-  "homepage": "https://github.com/AcrylicMarlin/TraderJoe#readme"
+  "homepage": "https://github.com/AcrylicMarlin/APICOM#readme",
+  "devDependencies": {}
 }

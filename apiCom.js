@@ -1,4 +1,4 @@
-
+'use strict';
 /* eslint-disable linebreak-style */
 /* eslint-disable @typescript-eslint/no-var-requires */
 
