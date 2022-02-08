@@ -6,10 +6,13 @@ Provides all the requests for you.
 Returns the response for you to parse and use to your desire.
 
 
-```
-There is only one event -> 'error'
+```js
+// There is only one event -> 'error'
 
-"nameOfCommunicatorInstance".on('error', (error) => { // Error will always be an Error Object. So keep that in mind });
+NameOfCommunicatorInstance.on('error', (error) => { 
+    console.log(err.message);
+    // error will always be an Error Object
+    });
 ```
 
 
