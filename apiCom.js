@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 
 const axios = require('axios').default;
+const { AxiosResponse } = require('axios');
 const qs = require('qs');
 const { EventEmitter } = require('events');
 
@@ -48,6 +49,7 @@ class ApiCom extends EventEmitter {
 	//Miscellaneous Requests
 	/**
 	 * Gets the status of game servers
+	 * @returns {AxiosResponse}
 	 */
 	async getStatus() {
 		const res = await this.axios_client.request({
@@ -56,11 +58,11 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
-		console.log(typeof res.data);
+		return res;
 	}
 	/**
 	 * Gets the users account
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getAccount() {
 		const res = await this.axios_client.request({
@@ -70,7 +72,7 @@ class ApiCom extends EventEmitter {
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 
@@ -78,6 +80,7 @@ class ApiCom extends EventEmitter {
 	/**
 	 * Gets information on a system
 	 * @param {string} symbol - symbol of system
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getSystemInfo(symbol) {
 		const res = await this.axios_client.request({
@@ -86,11 +89,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error',new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets the locations in a system
 	 * @param {string} symbol - symbol of location
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getSystemLocations(symbol) {
 		const res = await this.axios_client.request({
@@ -99,11 +103,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets all of the flight plans
 	 * @param {string} symbol - Symbol of the system 
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getFlightsInSystem(symbol) {
 		const res = await this.axios_client.request({
@@ -113,20 +118,21 @@ class ApiCom extends EventEmitter {
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets all of the docked ships in a system
 	 * @param {string} symbol - Symbol of the system
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getDockedShipsInSystem(symbol) {
-		const res = this.axios_client.request({
+		const res = await this.axios_client.request({
 			method:'GET',
 			url:`/systems/${symbol}/ships`
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 
@@ -140,9 +146,10 @@ class ApiCom extends EventEmitter {
 	 * buy a thing
 	 * @param {string} location_symbol - Location of the ship
 	 * @param {string} ship_symbol - symbol of the ship to buy
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async buyShip(location_symbol, ship_symbol) {
-		const res = await axios({
+		const res = await this.axios_client.request({
 			method: 'POST',
 			url: '/my/ships',
 			params: {
@@ -155,19 +162,19 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets the ship listings of the system
 	 * @param {string} symbol - Symbol of system
 	 * @param {string} ship_class - Class of ships (defaults to null)
-	 * @returns - http request
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getSystemShipListings(symbol, ship_class) {
 		if (typeof ship_class === 'undefined') {
 			ship_class = null;
 		}
-		const res = await axios({
+		const res = await this.axios_client.request({
 			method: 'get',
 			url: `/systems/${symbol.toUpperCase()}/ship-listings`,
 			params: {
@@ -179,51 +186,42 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets the users ships
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getUserShips() {
-		const res = await axios({
+		const res = await this.axios_client.request({
 			method: 'get',
 			url: '/my/ships',
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets the buy location of the ship specifed in the system
 	 * @param {string} symbol - symbol of the ship to look for
 	 * @param {string} system - system to look in
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getBuyLocation(symbol, system) {
-		const res = await axios({
+		const res = await this.axios_client.request({
 			method: 'get',
 			url: `/systems/${system}/ship-listings`,
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
 
-		let i = 0;
-		for (const listing of res.data.shipListings) {
-			if (listing.type === symbol) {
-				i++;
-				for (const location of listing.purchaseLocations) {
-					console.log(location);
-				}
-				break;
-			}
-		}
-		if (i === 0) {
-			this.emit('error', new Error('This ship does not exist'));
-		}
+		return res;
 	}
 
 	/**
 	 * Gets information on given ship
 	 * @param {string} shipID - actual id of the ship
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getShipInfo(shipID) {
 		const res = await this.axios_client.request({
@@ -232,10 +230,11 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets users ships
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getShips() {
 		const res = await this.axios_client.request({
@@ -244,13 +243,14 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Jettisons cargo into space
 	 * @param {string} id - ID of ship
 	 * @param {string} good - Symbol of the good
 	 * @param {number} quantity - Amount of goods to jettison
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async jettison(id, good, quantity) {
 		const res = await this.axios_client.request({
@@ -266,11 +266,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Scraps ship for credits
 	 * @param {string} id - ID of ship
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async scrap(id) {
 		const res = await this.axios_client.request({
@@ -279,8 +280,16 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
+	/**
+	 * Transfers goods from one ship to another
+	 * @param {string} fromID - Starting Ship
+	 * @param {string} toID - Ship to transfer to
+	 * @param {string} good - Type of good
+	 * @param {number | string} quantity - Quantity to transfer
+	 * @returns {AxiosResponse} - Https Response
+	 */
 	async transfer(fromID, toID, good, quantity) {
 		const res = await this.axios_client.request({
 			method:'POST',
@@ -296,11 +305,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	// Loans Requests
 	/**
 	 * get loans you have taken out
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getUserLoans() {
 		const res = await this.axios_client.request({
@@ -309,11 +319,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('httpError', err); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Take a loan
 	 * @param {string} type - Type of loan to take
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async takeLoan(type) {
 		const res = await this.axios_client.request({
@@ -328,12 +339,13 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('httpError', err); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 	/**
 	 *
 	 * @param {string} loanID - id of the loan (NOT TYPE)
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async payLoan(loanID) {
 		const res = await this.axios_client.request({
@@ -342,7 +354,7 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('httpError', err); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 	
@@ -354,6 +366,7 @@ class ApiCom extends EventEmitter {
 	/**
 	 * Gets Location Info
 	 * @param {string} location - location symbol
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLocationInfo(location) {
 		const res = await this.axios_client.request({
@@ -363,11 +376,12 @@ class ApiCom extends EventEmitter {
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets all ships docked at location
 	 * @param {string} location - Location symbol
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLocationShips(location) {
 		const res = await this.axios_client.request({
@@ -376,12 +390,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets the marketplace listings for a location
 	 * @param {string} location - Location symbol
-	 * @returns 
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLocationMarket(location) {
 		const res = await this.axios_client.request({
@@ -390,13 +404,14 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return false;
-		console.log(res.data);
+		return res;
 	}
 
 	// Types Requests
 	/**
 	 * Gets all available ships
 	 * @param {string} ship_class - Sort by class (optional)
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getAvailableShips(ship_class) {
 		if (typeof ship_class === 'undefined') {
@@ -414,11 +429,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 	/**
 	 * Gets all goods
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getGoodsTypes() {
 		const res = await this.axios_client.request({
@@ -427,10 +443,11 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false;});
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets all structures
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getStructures() {
 		const res = await this.axios_client.request({
@@ -439,10 +456,11 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * get all loans available
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLoans() {
 		const res = await this.axios_client.request({
@@ -451,10 +469,16 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('httpError', err); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 	// Structure requests
+	/**
+	 * Buys a structure
+	 * @param {*} location - location to build
+	 * @param {*} type - type of structure
+	 * @returns {AxiosResponse} - Https Response
+	 */
 	async buyStructure(location, type) {
 		const res = await this.axios_client.request({
 			method:'POST',
@@ -469,7 +493,7 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Deposits goods to a structure from a ship
@@ -477,6 +501,7 @@ class ApiCom extends EventEmitter {
 	 * @param {string} ship - Ship's ID
 	 * @param {string} good - Type of good
 	 * @param {number|string} quantity - Quantity of transfer
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async depositToOwnStructure(structure, ship, good, quantity) {
 		const res = await this.axios_client.request({
@@ -493,7 +518,7 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Deposits goods to a structure from a ship
@@ -501,6 +526,7 @@ class ApiCom extends EventEmitter {
 	 * @param {string} ship - Ship's ID
 	 * @param {string} good - Type of good
 	 * @param {number|string} quantity - Quantity of transfer
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async depositToAStructure(structure, ship, good, quantity) {
 		const res = await this.axios_client.request({
@@ -518,11 +544,12 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.reponse.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets information about a structure
 	 * @param {string} structure - Structure's ID
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getStructureInfo(structure) {
 		const res = await this.axios_client.request({
@@ -531,7 +558,7 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Transfers goods from the structure to the ship
@@ -539,6 +566,7 @@ class ApiCom extends EventEmitter {
 	 * @param {string} ship - Ship's ID
 	 * @param {string} good - Type of good
 	 * @param {number|string} quantity - quantity to transfer
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async transferGoods(structure, ship, good, quantity) {
 		const res = await this.axios_client.request({
@@ -555,24 +583,25 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * 
 	 * @param {string} structure 
-	 * @returns 
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getOwnedStructureInfo(structure) {
-		const res = this.axios_client.request({
+		const res = await this.axios_client.request({
 			method:'GET',
 			url:`/my/structures/${structure}`
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * Gets information on all owned structures
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getOwnedStructures() {
 		const res = await this.axios_client.request({
@@ -581,12 +610,13 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	// Flight plan commands
 	/**
 	 * Gets information on a flight plan
 	 * @param {string} flight_plan - ID of the flight plan
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getFlightPlanInfo(flight_plan) {
 		const res = await this.axios_client.request({
@@ -595,12 +625,13 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 	/**
 	 * 
 	 * @param {string} destination - Symbol of the loction to travel to
 	 * @param {string} ship - ID of the ship for travel
+	 * @returns {AxiosResponse} - Https Response
 	 */
 	async startFlight(destination, ship) {
 		const res = await this.axios_client.request({
@@ -616,11 +647,16 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 
 	//Warp Jump Requests
+	/**
+	 * Attempts to warp to a new system
+	 * @param {string} ship - ID of ship to attempt warp with
+	 * @returns {AxiosResponse} - Https Response
+	 */
 	async attemptWarp(ship) {
 		const res = await this.axios_client.request({
 			method:'POST',
@@ -634,7 +670,7 @@ class ApiCom extends EventEmitter {
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
-		console.log(res.data);
+		return res;
 	}
 
 }
