@@ -1,6 +1,6 @@
 {
   "name": "st-api-com",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API Wrapper written in JS for the SpaceTraders API",
   "main": "index.js",
   "scripts": {
