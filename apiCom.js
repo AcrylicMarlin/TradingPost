@@ -6,6 +6,7 @@ const axios = require('axios').default;
 const { AxiosResponse } = require('axios');
 const qs = require('qs');
 const { EventEmitter } = require('events');
+const { Ship, PartialShip, MarketShip } = require('./dataclasses');
 
 /**
  * ApiCom
@@ -14,7 +15,7 @@ const { EventEmitter } = require('events');
  * It is noted that errors are thrown using an 'error' event,
  * so you should the client.on to catch them. 
  * @author - Justin Cardenas
- * @version - 1.0.0
+ * @version - 1.0.3
  */
 class ApiCom extends EventEmitter {
 	/**
@@ -168,13 +169,13 @@ class ApiCom extends EventEmitter {
 	 * Gets the ship listings of the system
 	 * @param {string} symbol - Symbol of system
 	 * @param {string} ship_class - Class of ships (defaults to null)
-	 * @returns {AxiosResponse} - Https Response
+	 * @returns {MarketShip[]} - Array of MarketShips
 	 */
 	async getSystemShipListings(symbol, ship_class) {
 		if (typeof ship_class === 'undefined') {
 			ship_class = null;
 		}
-		const res = await this.axios_client.request({
+		const listings = await this.axios_client.request({
 			method: 'get',
 			url: `/systems/${symbol.toUpperCase()}/ship-listings`,
 			params: {
@@ -184,22 +185,61 @@ class ApiCom extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let listings = []
+				for (const listing of res.data.shipListings) {
+					listings.push(new MarketShip(
+						listing.type,
+						listing.class,
+						listing.maxCargo,
+						listing.loadingSpeed,
+						listing.speed,
+						listing.manufacturer,
+						listing.plating,
+						listing.weapons,
+						listing.restrictedGoods || null,
+						listing.purchaseLocations
+					));
+				return listings
+				}
+			});
+		if (!listings) return;
+		return listings;
 	}
 	/**
 	 * Gets the users ships
-	 * @returns {AxiosResponse} - Https Response
+	 * @returns {Ship[]} - Array of Ships
 	 */
 	async getUserShips() {
-		const res = await this.axios_client.request({
+		const ships = await this.axios_client.request({
 			method: 'get',
 			url: '/my/ships',
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let ships = [];
+				for (const ship of res.data.ships) {
+					ships.push(new Ship(
+						ship.id,
+						ship.locaion,
+						ship.x,
+						ship.y,
+						ship.cargo,
+						ship.spaceAvailable,
+						ship.type,
+						ship.maxCargo,
+						ship.loadingSpeed,
+						ship.speed,
+						ship.manufacturer,
+						ship.plating,
+						ship.weapons
+					));
+				}
+				return ships
+			});
+		if (!ships) return;
+		return ships;
 	}
 	/**
 	 * Gets the buy location of the ship specifed in the system
@@ -227,19 +267,6 @@ class ApiCom extends EventEmitter {
 		const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/my/ships/${shipID}`
-		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
-	}
-	/**
-	 * Gets users ships
-	 * @returns {AxiosResponse} - Https Response
-	 */
-	async getShips() {
-		const res = await this.axios_client.request({
-			method: 'GET',
-			url: '/my/ships'
 		})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
 		if (!res) return;
@@ -411,13 +438,13 @@ class ApiCom extends EventEmitter {
 	/**
 	 * Gets all available ships
 	 * @param {string} ship_class - Sort by class (optional)
-	 * @returns {AxiosResponse} - Https Response
+	 * @returns {PartialShip[]} - Array of Ship Objects
 	 */
 	async getAvailableShips(ship_class) {
 		if (typeof ship_class === 'undefined') {
 			ship_class = null;
 		}
-		const res = await axios({
+		const ships = await this.axios_client.request({
 			method: 'get',
 			url: '/types/ships',
 			params: {
@@ -427,9 +454,27 @@ class ApiCom extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let ships = [];
+				for (const ship of res.data.ships) {
+					ships.push(new PartialShip(
+						ship.type,
+						ship.maxCargo,
+						ship.loadingSpeed,
+						ship.speed,
+						ship.manufacturer,
+						ship.plating,
+						ship.weapons
+					));
+		
+				}
+				return ships;
+			});
+		if (!ships) return;
+		
+		
+		return ships;
 	}
 
 	/**

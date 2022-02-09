@@ -1,6 +1,6 @@
 {
   "name": "st-api-com",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "API Wrapper written in JS for the SpaceTraders API",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/AcrylicMarlin/APICOM.git"
+    "url": "git+https://github.com/AcrylicMarlin/st-api-com.git"
   },
   "keywords": [
     "api",
@@ -22,8 +22,8 @@
     "spacetraders"
   ],
   "bugs": {
-    "url": "https://github.com/AcrylicMarlin/APICOM/issues"
+    "url": "https://github.com/AcrylicMarlin/st-api-com/issues"
   },
-  "homepage": "https://github.com/AcrylicMarlin/APICOM#readme",
+  "homepage": "https://github.com/AcrylicMarlin/st-api-com#readme",
   "devDependencies": {}
 }
