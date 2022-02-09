@@ -2,8 +2,13 @@
 ## SpaceTraders API Communicator
 A Simple API Wrapper for the space traders API. 
 
-Provides all the requests for you. 
-Returns the response for you to parse and use to your desire.
+ > Depending on what each request is doing, it will return these objects
+ > * Ship
+ > * PartialShip
+ > * MarketShip
+ > * Loan
+ > * Good
+ > * Location
 
 
 ```js
