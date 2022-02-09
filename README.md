@@ -10,9 +10,8 @@ A Simple API Wrapper for the space traders API.
  > * Good
  > * Location
 
-
+### There is only one event currently
 ```js
-// There is only one event -> 'error'
 
 NameOfCommunicatorInstance.on('error', (error) => { 
     console.log(err.message);
