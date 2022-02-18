@@ -3,15 +3,7 @@
  * Represents a partial ship
  * Usually from ship listings
  */
-class PartialShip {
-    #class;
-    #type;
-    #maxCargo;
-    #loadingSpeed;
-    #speed;
-    #manufacturer;
-    #plating;
-    #weapons;
+class ShipType {
     /**
      * Represents a partial ship
      * Usually from available ships
@@ -25,23 +17,15 @@ class PartialShip {
      * @param {number} weapons - Number of weapons on ship
      */
     constructor(ship_class, type, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons) {
-        this.#class = ship_class;
-        this.#type = type;
-        this.#maxCargo = maxCargo;
-        this.#loadingSpeed = loadingSpeed;
-        this.#speed = speed;
-        this.#manufacturer = manufacturer;
-        this.#plating = plating;
-        this.#weapons = weapons;
+        this.class = ship_class;
+        this.type = type;
+        this.maxCargo = maxCargo;
+        this.loadingSpeed = loadingSpeed;
+        this.speed = speed;
+        this.manufacturer = manufacturer;
+        this.plating = plating;
+        this.weapons = weapons;
     }
-    get class() { return this.#class; }
-    get type() { return this.#type; }
-    get maxCargo() { return this.#maxCargo; }
-    get loadingSpeed() { return this.#loadingSpeed; }
-    get speed() { return this.#speed; }
-    get manufacturer() { return this.#manufacturer; }
-    get plating() { return this.#plating; }
-    get weapons() { return this.#weapons; }
 }
 
 
@@ -49,12 +33,7 @@ class PartialShip {
 /**
  * Ship dataclass
  */
- class Ship extends PartialShip{
-    #id;
-    #location;
-    #coordinates;
-    #cargo;
-    #space;
+ class Ship extends ShipType{
     /**
      * Ship data class constructor
      * @param {string} class - Ship Class
@@ -67,27 +46,20 @@ class PartialShip {
      */
     constructor(id, location, x_pos, y_pos, cargo, spaceAvailable, type, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons) {
         super(type, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons)
-        this.#id = id;
-        this.#location = location;
-        this.#coordinates = [x_pos, y_pos];
-        this.#cargo = cargo;
-        this.#space = spaceAvailable;
+        this.id = id;
+        this.location = location;
+        this.coordinates = [x_pos, y_pos];
+        this.cargo = cargo;
+        this.space = spaceAvailable;
 
     }
-    get id() { return this.#id; }
-    get location() { return this.#location; }
-    get coordinates() { return this.#coordinates; }
-    get cargo() { return this.#cargo; }
-    get space() { return this.#space; }
     
 }
 
 
 
 
-class MarketShip extends PartialShip {
-    #purchaseLocations;
-    #restrictedGoods;
+class MarketShip extends ShipType {
     /**
      * Represents a ship on the market
      * @param {string} type - Type of ship
@@ -103,26 +75,15 @@ class MarketShip extends PartialShip {
      */
     constructor(type, ship_class, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons, purchaseLocations, restrictedGoods) {
         super(ship_class, type, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons);
-        this.#purchaseLocations = purchaseLocations;
-        this.#restrictedGoods = restrictedGoods;
+        this.purchaseLocations = purchaseLocations;
+        this.restrictedGoods = restrictedGoods;
 
     }
-    get purchaseLocations() { return this.#purchaseLocations; }
-    get restrictedGoods() { return this.#restrictedGoods; }
 }
 
 
 
 class Location {
-    #symbol;
-    #type;
-    #name;
-    #coordinates
-    #allowsConstruction;
-    #traits;
-    #dockedShips;
-    #messages;
-    #price;
     /**
      * Location representation constructor
      * @param {string} symbol - Symbol of location
@@ -131,39 +92,27 @@ class Location {
      * @param {number} x_pos - X coordinate of location
      * @param {number} y_pos - Y coordinate of location
      * @param {boolean} allowsConstruction - If construction is allowed
-     * @param {stirng[]} traits - traits of location
+     * @param {string[]} traits - traits of location
      * @param {number} - number of docked ships
      * @param {string[]} messages - messages attached to location
      */
-    constructor(symbol, type, name, x_pos, y_pos, allowsConstruction, traits, dockedShips, messages) {
-        this.#symbol = symbol;
-        this.#type = type;
-        this.#name = name;
-        this.#coordinates = [x_pos, y_pos];
-        this.#allowsConstruction = allowsConstruction;
-        this.#traits = traits;
-        this.#dockedShips = dockedShips;
-        this.#messages = messages;
+    constructor(symbol, type, name, x_pos, y_pos, allowsConstruction, traits, dockedShips, messages, price) {
+        this.symbol = symbol;
+        this.type = type;
+        this.name = name;
+        this.coordinates = [x_pos, y_pos];
+        this.allowsConstruction = allowsConstruction;
+        this.traits = traits;
+        this.dockedShips = dockedShips;
+        this.messages = messages;
+        this.price = price;
     }
-    get symbol() { return this.#symbol }
-    get type() { return this.#type }
-    get name() { return this.#name }
-    get coordinates() { return this.#coordinates }
-    get allowsConstruction() { return this.#allowsConstruction }
-    get traits() { return this.#traits }
-    get dockedShips() { return this.#dockedShips }
-    get messages() { return this.#messages }
-    get price() { return this.#price }
 
-    set price(price) { this.#price = price;}
 }
 /**
  * Representation of a good
  */
 class Good {
-    #name;
-    #symbol;
-    #volume;
     /**
      * Good constructor
      * @param {string} name - Name of good
@@ -171,23 +120,15 @@ class Good {
      * @param {number} volume - Volume of good per unit
      */
     constructor(name, symbol, volume) {
-        this.#name = name;
-        this.#volume = volume;
-        this.#symbol = symbol;
+        this.name = name;
+        this.volume = volume;
+        this.symbol = symbol;
     }
-    get name() { return this.#name; }
-    get symbol() { return this.#symbol; }
-    get volume() { return this.#volume }
 }
 /**
  * Representation of a loan
  */
-class Loan {
-    #type;
-    #amount;
-    #rate;
-    #term;
-    #collateralRequired;
+class LoanType {
     /**
      * Loan Representation Constructor
      * @param {string} type - Type of loan
@@ -196,27 +137,19 @@ class Loan {
      * @param {number} termInDays - Payment term
      * @param {boolean} collateralRequired - If collateral is required
      */
-    constructor(type, amount, rate, termInDays, collateralRequired) {
-        this.#type = type;
-        this.#amount = amount;
-        this.#rate = rate;
-        this.#term = termInDays;
-        this.#collateralRequired = collateralRequired;
+    constructor(type, amount, rate, termInDays, collateralRequired, due, id, status, repaymentAmount) {
+        this.type = type;
+        this.amount = amount;
+        this.rate = rate;
+        this.term = termInDays;
+        this.collateralRequired = collateralRequired;
+        this.due = due;
+        this.id = id;
+        this.status = status;
+        this.repaymentAmount = repaymentAmount;
     }
-    get type() { return this.#type; }
-    get amount() { return this.#amount; }
-    get rate() { return this.#rate }
-    get term() { return this.#term }
-    get collateralRequired() { return this.#collateralRequired }
 }
 class Listing {
-    #symbol;
-    #volumePerUnit;
-    #pricePerUnit;
-    #spread;
-    #purchasePricePerUnit;
-    #sellPricePerUnit;
-    #quantityAvailable;
     /**
      * Listing Representation Constructor
      * @param {string} symbol 
@@ -228,30 +161,16 @@ class Listing {
      * @param {number} quantityAvailable 
      */
     constructor(symbol, volumePerUnit, pricePerUnit, spread, purchasePricePerUnit, sellPricePerUnit, quantityAvailable) {
-        this.#symbol = symbol;
-        this.#volumePerUnit = volumePerUnit;
-        this.#pricePerUnit = pricePerUnit;
-        this.#spread = spread;
-        this.#purchasePricePerUnit = purchasePricePerUnit;
-        this.#sellPricePerUnit = sellPricePerUnit;
-        this.#quantityAvailable = quantityAvailable;
+        this.symbol = symbol;
+        this.volumePerUnit = volumePerUnit;
+        this.pricePerUnit = pricePerUnit;
+        this.spread = spread;
+        this.purchasePricePerUnit = purchasePricePerUnit;
+        this.sellPricePerUnit = sellPricePerUnit;
+        this.quantityAvailable = quantityAvailable;
     }
-    get symbol() { return this.#symbol }
-    get volumePerUnit() { return this.#volumePerUnit }
-    get pricePerUnit() { return this.#pricePerUnit }
-    get spread() { return this.#spread }
-    get purchasePricePerUnit() { return this.#purchasePricePerUnit }
-    get sellPricePerUnit() { return this.#sellPricePerUnit }
-    get quantityAvailable() { return this.#quantityAvailable }
 }
-class Structure {
-    #type;
-    #name;
-    #price;
-    #allowedLocationTypes;
-    #allowedPlanetTraits;
-    #consumes;
-    #produces;
+class StructureType {
     /**
      * Structure Representation constructor
      * @param {string} type 
@@ -263,120 +182,102 @@ class Structure {
      * @param {string[]} produces 
      */
     constructor(type, name, price, allowedLocationTypes, allowedPlanetTraits, consumes, produces) {
-        this.#type = type;
-        this.#name = name;
-        this.#price = price;
-        this.#allowedLocationTypes = allowedLocationTypes;
-        this.#allowedPlanetTraits = allowedPlanetTraits;
-        this.#consumes = consumes;
-        this.#produces = produces;
+        this.type = type;
+        this.name = name;
+        this.price = price;
+        this.allowedLocationTypes = allowedLocationTypes;
+        this.allowedPlanetTraits = allowedPlanetTraits;
+        this.consumes = consumes;
+        this.produces = produces;
     }
-    get type() { return this.#type }
-    get name() { return this.#name }
-    get price() { return this.#price }
-    get allowedLocationTypes() { return this.#allowedLocationTypes }
-    get allowedPlanetTraits() { return this.#allowedPlanetTraits }
-    get consumes() { return this.#consumes }
-    get produces() { return this.#produces }
 }
 class PartialSystem {
-    #name;
-    #symbol;
+    /**
+     * @param {string} name 
+     * @param {string} symbol 
+     */
     constructor(name, symbol) {
-        this.#name = name;
-        this.#symbol = symbol;
+        this.name = name;
+        this.symbol = symbol;
     }
-    get name() { return this.#name }
-    get symbol() { return this.#symbol }
 }
 
 class UserFlightPlan {
-    #id;
-    #shipId;
-    #createdAt;
-    #arrivesAt;
-    #destination;
-    #departure;
-    #username;
-    #shipType;
+    /**
+     * @param {string} id 
+     * @param {string} shipId 
+     * @param {string} createdAt 
+     * @param {string} arrivesAt 
+     * @param {string} destination 
+     * @param {string} departure 
+     * @param {string} username 
+     * @param {string} shipType 
+     */
     constructor(id, shipId, createdAt, arrivesAt, destination, departure, username, shipType) {
-        this.#id = id;
-        this.#shipId = shipId;
-        this.#createdAt = createdAt;
-        this.#arrivesAt = arrivesAt;
-        this.#destination = destination;
-        this.#departure = departure,
-        this.#username = username;
-        this.#shipType = shipType;
+        this.id = id;
+        this.shipId = shipId;
+        this.createdAt = createdAt;
+        this.arrivesAt = arrivesAt;
+        this.destination = destination;
+        this.departure = departure,
+        this.username = username;
+        this.shipType = shipType;
     }
-    get id() { return this.#id }
-    get shipId() { return this.#shipId }
-    get createdAt() { return this.#createdAt }
-    get arrivesAt() {return this.#arrivesAt }
-    get destination() { return this.#destination }
-    get departure() { return this.#departure }
-    get username() { return this.#username }
-    get shipType() { return this.#shipType }
 
 }
 class FlightPlan extends UserFlightPlan {
-    #distance;
-    #fuelConsumed;
-    #fuelRemaining;
-    #terminatedAt;
-    #timeRemainingInSeconds;
+    /**
+     * @param {string} id 
+     * @param {string} shipId 
+     * @param {string} createdAt 
+     * @param {string} arrivesAt 
+     * @param {string} destination 
+     * @param {string} departure 
+     * @param {string} distance 
+     * @param {string} fuelConsumed 
+     * @param {string} fuelRemaining 
+     * @param {string} terminatedAt 
+     * @param {string} timeRemaingInSeconds 
+     */
     constructor(id, shipId, createdAt, arrivesAt, destination, departure, distance, fuelConsumed, fuelRemaining, terminatedAt, timeRemaingInSeconds) {
         super(id, shipId, createdAt, arrivesAt, destination, departure, null, null);
-        this.#distance = distance;
-        this.#fuelConsumed = fuelConsumed;
-        this.#fuelRemaining = fuelRemaining;
-        this.#terminatedAt = terminatedAt;
-        this.#timeRemainingInSeconds = timeRemaingInSeconds;
+        this.distance = distance;
+        this.fuelConsumed = fuelConsumed;
+        this.fuelRemaining = fuelRemaining;
+        this.terminatedAt = terminatedAt;
+        this.timeRemainingInSeconds = timeRemaingInSeconds;
     }
-    get distance() { return this.#distance }
-    get fuelConsumed() { return this.#fuelConsumed }
-    get fuelRemaining() { return this.#fuelRemaining }
-    get terminatedAt() { return this.#terminatedAt }
-    get timeRemaingInSeconds() { return this.#timeRemainingInSeconds }
+
 }
 class Order {
-    #good;
-    #quanitity;
-    #pricePerUnit;
-    #total;
+    /**
+     * @param {string} good 
+     * @param {string} quantity 
+     * @param {string} pricePerUnit 
+     * @param {string} total 
+     */
     constructor(good, quantity, pricePerUnit, total) {
-        this.#good = good;
-        this.#quanitity = quantity;
-        this.#pricePerUnit = pricePerUnit;
-        this.#total = total;
+        this.good = good;
+        this.quanitity = quantity;
+        this.pricePerUnit = pricePerUnit;
+        this.total = total;
     }
-    get good() { return this.#good }
-    get quantity() { return this.#quanitity }
-    get pricePerUnit() { return this.#pricePerUnit }
-    get total() { return this.#total }
 }
 
 class MarketOrder {
-    #credits;
-    #order;
-    #ship;
+    /**
+     * @param {string} credits 
+     * @param {string} order 
+     * @param {string} ship 
+     */
     constructor(credits, order, ship) {
-        this.#credits = credits;
-        this.#order = order;
-        this.#ship = ship;
+        this.credits = credits;
+        this.order = order;
+        this.ship = ship;
     }
-    get credits() { return this.#credits }
-    get order() { return this.#order }
-    get ship() { return this.#ship }
 }
 
 class User {
-    #username;
-    #shipCount;
-    #structureCount;
-    #joinedAt;
-    #credits;
-    #token;
     /**
      * 
      * @param {string} username 
@@ -386,55 +287,103 @@ class User {
      * @param {string} credits 
      */
     constructor(username, shipCount, structureCount, joinedAt, credits, token) {
-        this.#username = username;
-        this.#shipCount = shipCount;
-        this.#structureCount = structureCount;
-        this.#joinedAt = joinedAt;
-        this.#credits = credits;
-        this.#token = token
+        this.username = username;
+        this.shipCount = shipCount;
+        this.structureCount = structureCount;
+        this.joinedAt = joinedAt;
+        this.credits = credits;
+        this.token = token
     }
-    get username() { return this.#username }
-    get shipCount() { return this.#shipCount }
-    get structureCount() { return this.#structureCount }
-    get joinedAt() { return this.#joinedAt }
-    get credits() { return this.#credits}
-    get token() { return this.#token }
 }
 class Jettison {
-    #good;
-    #quantityRemaining;
-    #shipId;
     /**
      * Representation of a Jettison repsonse
      * @param {string | Good} good 
      * @param {number} quantityRemaining 
-     * @param {ship | Ship} shipId 
+     * @param {string | Ship} shipId 
      */
     constructor(good, quantityRemaining, shipId) {
-        this.#good = good;
-        this.#quantityRemaining = quantityRemaining;
-        this.#shipId = shipId;
+        this.good = good;
+        this.quantityRemaining = quantityRemaining;
+        this.shipId = shipId;
     }
-    get good() { return this.#good }
-    get quantityRemaining() { return this.#quantityRemaining }
-    get shipId() { return this.#shipId }
 }
 class System extends PartialSystem {
-    #locations
+    /**
+     * @param {string} name 
+     * @param {string} symbol 
+     * @param {Location[]} locations 
+     */
     constructor(name, symbol, locations) {
         super(name, symbol)
-        this.#locations = locations;
+        this.locations = locations;
     }
-    get locations() { return this.#locations }
+}
+class Structure {
+    /**
+     * @param {string} active 
+     * @param {string} consumes 
+     * @param {string} id 
+     * @param {string} inventory 
+     * @param {string} location 
+     * @param {string} ownedBy 
+     * @param {string} produces 
+     * @param {string} status 
+     * @param {string} type 
+     */
+    constructor(active, consumes, id, inventory, location, ownedBy, produces, status, type) {
+        this.active = active;
+        this.consumes = consumes;
+        this.id = id,
+        this.inventory = inventory;
+        this.location = location;
+        this.ownedBy = ownedBy;
+        this.produces = produces;
+        this.status = status;
+        this.type = type;
+    }
+}
+class Loan extends LoanType {
+    /**
+     * @param {string} amount 
+     * @param {string} collateralRequired 
+     * @param {string} rate 
+     * @param {string} termInDays 
+     * @param {string} type 
+     * @param {string} due 
+     * @param {string} id 
+     * @param {string} status 
+     * @param {string} repaymentAmount 
+     */
+    constructor(amount, collateralRequired, rate, termInDays, type, due, id, status, repaymentAmount) {
+        super(amount, collateralRequired, rate, termInDays, type);
+        this.due = due;
+        this.id = id;
+        this.status = status;
+        this.repaymentAmount = repaymentAmount;
+    }
+}
+class Deposit {
+    constructor(good, quanitity) {
+        this.good = good;
+        this.quanitity = quanitity;
+    }
+}
+class Transfer extends Deposit{
+    constructor(good, quanitity) {
+        super(good, quanitity);
+    }
 }
 module.exports = {
     Ship,
-    PartialShip,
+    ShipType,
     MarketShip,
     Location,
     Good,
+    LoanType,
     Loan,
     Listing,
+    StructureType,
     Structure,
     PartialSystem,
     System,
@@ -444,5 +393,6 @@ module.exports = {
     MarketOrder,
     User,
     Jettison,
-
+    Deposit,
+    Transfer
 };

@@ -10,6 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.24.0",
+    "bottleneck": "^2.19.5",
     "qs": "^6.10.3"
   },
   "repository": {
@@ -25,5 +26,7 @@
     "url": "https://github.com/AcrylicMarlin/TradingPost/issues"
   },
   "homepage": "https://github.com/AcrylicMarlin/TradingPost#readme",
-  "devDependencies": {}
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  }
 }

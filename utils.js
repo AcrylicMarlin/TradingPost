@@ -2,47 +2,12 @@ const ApiCom = require('./TradingPost');
 const dc = require('./dataclasses')
 /**
  * @param {*} data 
- * @param {ApiCom} client
- * @returns {dc.Ship}
- */
-module.exports.parseShip = async (data, client, systems) => {
-    const goods = await getGoods(client);
-    const locations = await getLocations(client, data.location.slice(0, 2));
-    let cargo = [];
-    for (const good of goods) {
-        for (const item of data.cargo) {
-            if (good.name == item.name)
-            cargo.push(good);
-        }
-    }
-    let shipLocation = null;
-    for (const location of locations) {
-        if (location.symbol === data.location)
-        shipLocation = location;
-    } 
-    return new dc.Ship(
-        data.id,
-        shipLocation,
-        data.x,
-        data.y,
-        cargo,
-        data.spaceAvailable,
-        data.type,
-        data.maxCargo,
-        data.loadingSpeed,
-        data.speed,
-        data.manufacturer,
-        data.plating,
-        data.weapons
-    );
-}
-/**
- * @param {*} data 
  * @param {ApiCom} client 
  * @returns {dc.MarketShip}
  */
-module.exports.parseMarketShip = async (data, system, client) => {
-    const systemLocations = await client.getSystemLocations(system);
+module.exports.parseMarketShip = (data, system, client) => {
+    const index = client.systems.find(current => { return current.symbol === system})
+    const systemLocations = client.systems[index].locations;
     const locations = [];
     for (const location of data.purchaseLocations) {
         for (const loc of systemLocations) {
@@ -63,7 +28,7 @@ module.exports.parseMarketShip = async (data, system, client) => {
         data.manufacturer,
         data.plating,
         data.weapons,
-        locations,
+        locations || null,
         data.restrictedGoods
     )
 }
@@ -78,4 +43,70 @@ module.exports.parseSystem = (client, locations, system) => {
 }
 module.exports.parsePartialSystem = (data) => {
     return new dc.PartialSystem(data.name, data.symbol);
+}
+module.exports.parseStructure = (data) => {
+    return new dc.Structure(
+        data.active,
+        data.consumes,
+        data.id,
+        data.inventory,
+        data.location,
+        data.ownedBy.username,
+        data.produces,
+        data.status,
+        data.type
+    );
+}
+module.exports.parseStructureType = (data) => {
+    return new dc.StructureType(
+        data.type,
+        data.name,
+        data.price,
+        data.allowedLocationTypes,
+        data.allowedPlanetTraits,
+        data.consumes,
+        data.produces
+    );
+}
+module.exports.parseDeposit = (data) => {
+    return new dc.Deposit(
+        data.good,
+        data.quantity
+    );
+}
+module.exports.parseTransfer = (data) => {
+    return new dc.Transfer(
+        data.good,
+        data.quantity
+    );
+}
+module.exports.parseShip = (data) => {
+    return new dc.Ship(
+        data.id,
+        data.location,
+        data.x,
+        data.y,
+        data.cargo,
+        data.spaceAvailable,
+        data.type,
+        data.maxCargo,
+        data.loadingSpeed,
+        data.speed,
+        data.manufacturer,
+        data.plating,
+        data.weapons
+    );
+}
+module.exports.parseMarketShip = (data, locations) => {
+    
+}
+
+module.exports.ExitConnection = class ExitConnection extends Error {
+    constructor(message = 'Connection Closed') {
+        super(message);
+        this.name = 'ExitConnection';
+    }
+}
+module.exports.sleep = async (ms) => {
+    return new Promise(resolved => { setTimeout(resolved, ms); });
 }

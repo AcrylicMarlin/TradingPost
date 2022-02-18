@@ -4,9 +4,10 @@ const axios = require('axios').default;
 const { AxiosResponse } = require('axios');
 const qs = require('qs');
 const { EventEmitter } = require('events');
-const { Ship, PartialShip, MarketShip, Location, Good, Loan, Listing, Structure, System, UserFlightPlan, FlightPlan, Order, MarketOrder, User, PartialSystem } = require('./dataclasses');
+const { Ship, PartialShip, MarketShip, Location, Good, Loan, Listing, Structure, System, UserFlightPlan, FlightPlan, Order, MarketOrder, User, PartialSystem, Jettison, StructureType, ShipType } = require('./dataclasses');
 const utils = require('./utils');
 const fs = require('fs');
+const { default: Bottleneck } = require('bottleneck');
 
 
 /**
@@ -17,14 +18,16 @@ const fs = require('fs');
  */
 module.exports = class TradingPost extends EventEmitter {
 
-
 	constructor() {
 		super();
-		this.User = null;
+		this.User;
 		this.token = null;
 		this.axios_client = null;
 		this.systems = [];		
 		this.goods = null;
+		this.limit = 2;
+		this.current = 0;
+		this.limiter = new Bottleneck({minTime:3000, maxConcurrent:1})
 	}
 
 	async #getUser() {
@@ -35,7 +38,6 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @param {string} token token of user
 	 */
 	async start_client(token) {
-
 		this.token = token;
 
 		this.axios_client = axios.create({
@@ -44,37 +46,61 @@ module.exports = class TradingPost extends EventEmitter {
 				'Authorization':token
 			}
 		});
-		const status = await this.getStatus();
+		console.log('before getStatus')
+		const getStatus = this.limiter.wrap(this.getStatus);
+
+		const status = await getStatus();
+		console.log(status);
+		console.log('after getStatus');
 		if (!status) {
 			return;
 		}
-		this.User = await this.#getUser();
+		this.User = await this.limiter.schedule(() => { this.#getUser() });
 		await this.#gatherData();
-		if (this.#checkIfReady())
 		this.emit('ready');
-		else
-		this.emit('error', new Error('Something went wrong'));
 		
+
+		
+		
+	}
+
+	
+	async stop_client() {
+		throw new utils.ExitConnection();
 	}
 	async #gatherData() {
 		const systems = ['OE', 'XV', 'NA7', 'ZY1']
 		for (const item of systems) {
-			const locations = await this.getSystemLocations(item);
-			const system = await this.getSystemInfo(item);
+			const locations = await this.limiter.schedule(() => { this.getSystemLocations(item) });
+			const system = await this.limiter.schedule(() => { this.getSystemInfo(item) });
 			this.systems.push(utils.parseSystem(this, locations, system))
 		}
-		this.goods = await this.getGoodsTypes();
-		this.ships = await this.getAvailableShips();
+		this.goods = await this.limiter.schedule(() => { this.getGoodsTypes() });
+		this.ships = await this.limiter.schedule(() => { this.getAvailableShips() });
+		this.loans = [
+			new Loan(
+				200000,
+				false,
+				40,
+				2,
+				'STARTUP',
+				null,
+				null,
+				null,
+				null)
+		]
 
 
 	}
 	#checkIfReady() {
-		return this.systems.length !== 0
+		const status = this.systems.length !== 0
 		&& this.User instanceof User
 		&& this.token !== null
 		&& this.axios_client !== null
 		&& this.goods.length !== 0
 		&& this.ships.length !== 0;
+		console.log(status)
+		return status;
 	}
 
 	
@@ -88,8 +114,11 @@ module.exports = class TradingPost extends EventEmitter {
 			method: 'get',
 			url: '/game/status'
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
+		.catch(err => { 
+			let error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error); return false; })
+					if (!res) return;
 		if (res.status === 200) {
 			console.log(res.data.status);
 			return true;
@@ -112,7 +141,7 @@ module.exports = class TradingPost extends EventEmitter {
 			.then(res => { return new User(res.data.user.username, res.data.user.shipCount, res.data.user.structureCount, res.data.user.joinedAt, res.data.user.credits, this.token); });
 
 		if (!user) return;
-		
+		this.emit('request');
 		return user;
 		
 	}
@@ -129,8 +158,12 @@ module.exports = class TradingPost extends EventEmitter {
 			method: 'GET',
 			url: `/systems/${symbol.toUpperCase()}`
 		})
-			.catch(err => { this.emit('error',new Error(err.response.data.error.message)); return false; })
-			.then(res => { return new PartialSystem(res.data.system.name, res.data.system.symbol)})
+			.catch(err => { 
+			let error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error); return false; })
+			.then(res => { return new PartialSystem(res.data.system.name, res.data.system.symbol)});
+		this.emit('request');
 		if (!system) return;
 		return system;
 	}
@@ -144,7 +177,10 @@ module.exports = class TradingPost extends EventEmitter {
 			method: 'GET',
 			url: `/systems/${symbol.toUpperCase()}/locations`
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.catch(err => { 
+			let error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error); return false; })
 			.then(res => {
 				let locations = [];
 				res.data.locations.forEach(location => {
@@ -161,7 +197,7 @@ module.exports = class TradingPost extends EventEmitter {
 				});
 				return locations;
 			});
-		
+		this.emit('request');
 		if (!locations) return;
 		return locations;
 		
@@ -260,18 +296,24 @@ module.exports = class TradingPost extends EventEmitter {
 			method: 'get',
 			url: `/systems/${system.toUpperCase()}/ship-listings`,
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(async res => {
+			.catch(err => { 
+				let error = new Error(err.response.data.error.message);
+				error.name = err.response.data.error.code;
+				this.emit('error', error); return false; })
+			.then(res => {
 				let mShip = null;
 				for (const listing of res.data.shipListings) {
+					console.log(listing);
 					if (listing.type === ship) {
-						mShip = await utils.parseMarketShip(listing, system, this);
+						console.log(listing.type);
+						mShip = utils.parseMarketShip(listing, system, this);
 					}
 				}
 				return mShip;
 			});
-		if (!mShip) return;
-		return mShip;
+		if (!mShip) throw new utils.ExitConnection();
+		if (mShip == null) throw new Error(`Ship "${ship}" was not found.`);
+		else return mShip;
 	}
 	/**
 	 * Gets the users ships
@@ -334,7 +376,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async jettison(id, good, quantity) {
-		const res = await this.axios_client.request({
+		const jettison = await this.axios_client.request({
 			method:'POST',
 			url:`/my/ships/${id}/jettison`,
 			params:{
@@ -345,24 +387,38 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let item = res.data.good;
+				for (const good of this.goods) {
+					if (good.symbol == item) {
+						item = good;
+						break;
+					}
+				}
+				return new Jettison(
+					item,
+					res.data.quantityRemaining,
+					res.data.shipId
+				)
+			});
+		if (!jettison) return;
+		return jettison;
 	}
-	/**
-	 * Scraps ship for credits
-	 * @param {string} id - ID of ship
-	 * @returns {AxiosResponse} - Https Response
-	 */
-	async scrap(id) {
-		const res = await this.axios_client.request({
-			method:'DELETE',
-			url:`/my/ships/${id}`
-		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
-	}
+	// /**
+	//  * Scraps ship for credits
+	//  * @param {string} id - ID of ship
+	//  * @returns {AxiosResponse} - Https Response
+	//  */
+	// async scrap(id) {
+	// 	const res = await this.axios_client.request({
+	// 		method:'DELETE',
+	// 		url:`/my/ships/${id}`
+	// 	})
+	// 		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+	// 	if (!res) return;
+	// 	return res;
+	// }
 	/**
 	 * Transfers goods from one ship to another
 	 * @param {string} fromID - Starting Ship
@@ -372,7 +428,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async transfer(fromID, toID, good, quantity) {
-		const res = await this.axios_client.request({
+		const transfer = await this.axios_client.request({
 			method:'POST',
 			url:`/my/ships/${fromID}/transfer`,
 			params:{
@@ -384,9 +440,44 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				const toShipData = res.data.toShip;
+				const fromShipData = res.data.fromShip;
+				const toShip = new Ship(
+					toShipData.id,
+					null,
+					null,
+					null,
+					toShipData.cargo,
+					toShipData.spaceAvailable,
+					toShipData.type,
+					toShipData.maxCargo,
+					null,
+					toShipData.speed,
+					toShipData.manufacturer,
+					toShipData.plating,
+					toShipData.weapons
+				);
+				const fromShip = new Ship(
+					fromShipData.id,
+					null,
+					null,
+					null,
+					fromShipData.cargo,
+					fromShipData.spaceAvailable,
+					fromShipData.type,
+					fromShipData.maxCargo,
+					null,
+					fromShipData.speed,
+					fromShipData.manufacturer,
+					fromShipData.plating,
+					fromShipData.weapons
+				)
+				return {toShip:toShip, fromShip:fromShip}
+			})
+		if (!transfer) return;
+		return transfer;
 	}
 	// Loans Requests
 	/**
@@ -394,13 +485,30 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getUserLoans() {
-		const res = await this.axios_client.request({
+		const loans = await this.axios_client.request({
 			method: 'GET',
 			url: '/my/loans'
 		})
-			.catch(err => { this.emit('httpError', err); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let loans = [];
+				for (const loan of res.data.loans) {
+					loans.push(new Loan(
+						loan.type,
+						this.loans.at(0).amount,
+						this.loans.at(0).rate,
+						this.loans.at(0).term,
+						this.loans.at(0).collateralRequired,
+						loan.due,
+						loan.id,
+						loan.status,
+						loan.repaymentAmount
+					))
+				}
+				return loans;
+			})
+		if (!loans) return;
+		return loans;
 	}
 	/**
 	 * Take a loan
@@ -408,7 +516,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async takeLoan(type) {
-		const res = await this.axios_client.request({
+		const loan = await this.axios_client.request({
 			method: 'POST',
 			url: '/my/loans',
 			params: {
@@ -418,9 +526,24 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('httpError', err); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('httpError', err); return false; })
+			.then(res => {
+				const loanData = res.data.loan;
+				return new Loan(
+					loanData.type,
+					this.loans.at(0).amount,
+					this.loans.at(0).rate,
+					this.loans.at(0).term,
+					this.loans.at(0).collateralRequired,
+					loanData.due,
+					loanData.id,
+					loanData.status,
+					loanData.repaymentAmount
+				);
+
+			});
+		if (!loan) return;
+		return loan;
 	}
 
 	/**
@@ -429,13 +552,28 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async payLoan(loanID) {
-		const res = await this.axios_client.request({
+		const loan = await this.axios_client.request({
 			method: 'PUT',
 			url: `/my/loans/${loanID}`,
 		})
-			.catch(err => { this.emit('httpError', err); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('httpError', err); return false; })
+			.then(res => {
+				const loanData = res.data.loans[0];
+				return new Loan(
+					loanData.type,
+					this.loans.at(0).amount,
+					this.loans.at(0).rate,
+					this.loans.at(0).term,
+					this.loans.at(0).collateralRequired,
+					loanData.due,
+					loanData.id,
+					loanData.status,
+					loanData.repaymentAmount
+				);
+
+			});
+		if (!loan) return;
+		return loan;
 	}
 
 	
@@ -473,32 +611,34 @@ module.exports = class TradingPost extends EventEmitter {
 		return location;
 	}
 	/**
-	 * Gets all ships docked at location
-	 * @param {string} location - Location symbol
-	 * @returns {AxiosResponse} - Https Response
-	 */
-	async getLocationShips(location) {
-		const res = await this.axios_client.request({
-			method:'GET',
-			url:`/locations/${location}/ships`
-		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
-	}
-	/**
 	 * Gets the marketplace listings for a location
 	 * @param {string} location - Location symbol
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLocationMarket(location) {
-		const res = await this.axios_client.request({
+		const listings = await this.axios_client.request({
 			method:'GET',
 			url:`/locations/${location}/marketplace`
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return false;
-		console.log(res.data);
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let listings = [];
+				const market = res.data.marketplace;
+				for (const item of market) {
+					listings.push(new Listing(
+						item.symbol,
+						item.volumePerUnit,
+						item.pricePerUnit,
+						item.spread,
+						item.purchasePricePerUnit,
+						item.sellPricePerUnit,
+						item.quantityAvailable
+					));
+				}
+				return listings;
+			});
+		if (!listings) return false;
+		return listings;
 	}
 
 	// Types Requests
@@ -518,11 +658,14 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.catch(err => { 
+			let error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error); return false; })
 			.then(res => {
 				let ships = [];
 				for (const ship of res.data.ships) {
-					ships.push(new PartialShip(
+					ships.push(new ShipType(
 						ship.type,
 						ship.maxCargo,
 						ship.loadingSpeed,
@@ -535,6 +678,7 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 				return ships;
 			});
+		this.emit('request');
 		if (!ships) return;
 		
 		
@@ -550,7 +694,10 @@ module.exports = class TradingPost extends EventEmitter {
 			method:'GET',
 			url:'types/goods'
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false;})
+			.catch(err => { 
+				let error = new Error(err.response.data.error.message);
+				error.name = err.response.data.error.code;
+				this.emit('error', error); return false; })
 			.then(res => {
 				const goods = [];
 				res.data.goods.forEach(good => {
@@ -562,6 +709,7 @@ module.exports = class TradingPost extends EventEmitter {
 				});
 				return goods;
 			});
+		this.emit('request');
 		if (!goods) return;
 		return goods;
 	}
@@ -570,16 +718,29 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getStructures() {
-		const res = await this.axios_client.request({
+		const structures = await this.axios_client.request({
 			method:'GET',
 			url:'/types/structures'
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		console.log(res.data.structures[0].allowedLocationTypes);
-		console.log(res.data.structures[0].allowedPlanetTraits);
-		console.log(res.data.structures[0].consumes);
-		console.log(res.data.structures[0].produces);
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				let structures = [];
+				const structureData = res.data.structures;
+				for (const structure of structureData) {
+					structures.push(new StructureType(
+						structure.type,
+						structure.name,
+						structure.price,
+						structure.allowedLocationTypes,
+						structure.allowedPlanetTraits,
+						structure.consumes,
+						structure.produces
+					));
+				}
+				return structures;
+			})
+		if (!structures) return;
+		
 	}
 	/**
 	 * get all loans available
@@ -627,7 +788,10 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				return utils.parseStructure(res.data.structure);
+			});
 		if (!res) return;
 		return res;
 	}
@@ -665,7 +829,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async depositToAStructure(structure, ship, good, quantity) {
-		const res = await this.axios_client.request({
+		const deposit = await this.axios_client.request({
 			method:'GET',
 			url:`/structures/${structure}/deposit`,
 			params:{
@@ -678,9 +842,15 @@ module.exports = class TradingPost extends EventEmitter {
 			}
 
 		})
-			.catch(err => { this.emit('error', new Error(err.reponse.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.reponse.data.error.message)); return false; })
+			.then(res => {
+				const structure = utils.parseStructure(res.data.structure);
+				const deposit = utils.parseDeposit(res.data.deposit);
+				const ship = utils.parseShip(res.data.ship);
+				return {structure:structure, deposit:deposit, ship:ship}
+			});
+		if (!deposit) return;
+		return deposit;
 	}
 	/**
 	 * Gets information about a structure
@@ -688,13 +858,16 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getStructureInfo(structure) {
-		const res = await this.axios_client.request({
+		const info = await this.axios_client.request({
 			method:'GET',
-			url:`/structures/${structure}`
+			url:`/my/structures/${structure}`
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-		if (!res) return;
-		return res;
+			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+			.then(res => {
+				return utils.parseStructure(res.data.structure);
+			});
+		if (!info) return;
+		return info;
 	}
 	/**
 	 * Transfers goods from the structure to the ship

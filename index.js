@@ -1,1 +1,1 @@
-module.exports = require('./apiCom');
+module.exports = require('./TradingPost');
