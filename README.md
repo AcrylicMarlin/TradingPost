@@ -13,20 +13,15 @@ Each can be handled like this
 ```js
 // wrapper represents the TradingPost object
 wrapper.on('ready', (/* no args are given in the event */) => {
-    /*
-    Do whatever you want in this event to signify wrapper is ready
-    Note: Starting the api takes up some of the ratelimit. 
-    I apologize for this. I haven't figured out how to counter this
-    */
+    console.log('Connection Established');
 });
 ```
 #### Error event
 ```js
 //wrapper represents the TradingPost object
 wrapper.on('error', (err /* Will always be an error object*/) => {
-    /*
-    Do whatever you want to handle the error in this event
-    */
+    console.log('An Error has occured');
+    console.log(err.stack);
 });
 ```
 ## Objects
