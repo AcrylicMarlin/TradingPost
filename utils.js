@@ -110,3 +110,10 @@ module.exports.parsePurchaseLocation = (data) => {
 module.exports.parseMiscData = (data) => {
     return new dc.MiscData(data);
 }
+module.exports.ShipNotFound = class ShipNotFound extends Error {
+    constructor(ship) {
+        const message = `Ship ${ship} was not found`;
+        super(message);
+        this.name = 'ShipNotFound'
+    }
+}

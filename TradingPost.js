@@ -353,8 +353,8 @@ module.exports = class TradingPost extends EventEmitter {
 					
 				}
 				if (!mShip) {
-					this.emit('error', new Error(`Ship "${ship}" was not found.`));
-					this.stop_client();
+					this.emit('error', new utils.ShipNotFound(ship));
+					return new MarketShip(null, null, null, null, null, null, null, null, [], []);
 				}
 				return mShip;
 			});
@@ -536,10 +536,14 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getUserLoans() {
-		const loans = await this.axios_client.request({
+		const loans = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: '/my/loans'
 		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
 			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
 			.then(res => {
 				let loans = [];
@@ -567,7 +571,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async takeLoan(type) {
-		const loan = await this.axios_client.request({
+		const loan = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'POST',
 			url: '/my/loans',
 			params: {
@@ -577,6 +581,10 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
 			.catch(err => { this.emit('httpError', err); return false; })
 			.then(res => {
 				const loanData = res.data.loan;
@@ -603,10 +611,14 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async payLoan(loanID) {
-		const loan = await this.axios_client.request({
+		const loan = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'PUT',
 			url: `/my/loans/${loanID}`,
 		})
+		.then(res => { return res;})
+		.catch(err => { return err });
+		return res;
+	})
 			.catch(err => { this.emit('httpError', err); return false; })
 			.then(res => {
 				const loanData = res.data.loans[0];
@@ -639,10 +651,14 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getLocationInfo(symbol) {
-		const location = await this.axios_client.request({
+		const location = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method:'GET',
 			url:`/locations/${symbol}`
 		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
 		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
 		.then(res => {
 			const location = res.data.location;
