@@ -5,20 +5,11 @@ const dc = require('./dataclasses')
  * @param {ApiCom} client 
  * @returns {dc.MarketShip}
  */
-module.exports.parseMarketShip = (data, system, client) => {
-    const index = client.systems.find(current => { return current.symbol === system})
-    const systemLocations = client.systems[index].locations;
+module.exports.parseMarketShip = (data, system) => {
     const locations = [];
-    for (const location of data.purchaseLocations) {
-        for (const loc of systemLocations) {
-            if (loc.symbol == location.location) {
-                fullLocation = loc;
-                break
-            }
-        }
-        fullLocation.price = location.price;
-        locations.push(fullLocation);
-    }
+    data.purchaseLocations.forEach((location) => {
+        locations.push(this.parsePurchaseLocation(location));
+    })
     return new dc.MarketShip(
         data.type,
         data.class,
@@ -28,7 +19,7 @@ module.exports.parseMarketShip = (data, system, client) => {
         data.manufacturer,
         data.plating,
         data.weapons,
-        locations || null,
+        locations,
         data.restrictedGoods
     )
 }
@@ -36,11 +27,15 @@ module.exports.parseMarketShip = (data, system, client) => {
  * @param {ApiCom} client 
  * @param {dc.Location[]} locations 
  * @param {dc.PartialSystem} system 
- * @returns 
+ * @returns {dc.System}
  */
 module.exports.parseSystem = (client, locations, system) => {
     return new dc.System(system.name, system.symbol, locations);
 }
+/**
+ * @param {*} data 
+ * @returns {dc.PartialSystem}
+ */
 module.exports.parsePartialSystem = (data) => {
     return new dc.PartialSystem(data.name, data.symbol);
 }
@@ -82,23 +77,20 @@ module.exports.parseTransfer = (data) => {
 }
 module.exports.parseShip = (data) => {
     return new dc.Ship(
-        data.id,
-        data.location,
-        data.x,
-        data.y,
-        data.cargo,
-        data.spaceAvailable,
-        data.type,
-        data.maxCargo,
-        data.loadingSpeed,
-        data.speed,
-        data.manufacturer,
-        data.plating,
-        data.weapons
+        data.id || null,
+        data.location || null,
+        data.x || null,
+        data.y || null,
+        data.cargo || null,
+        data.spaceAvailable || null,
+        data.type || null,
+        data.maxCargo || null,
+        data.loadingSpeed || null,
+        data.speed || null,
+        data.manufacturer || null,
+        data.plating || null,
+        data.weapons || null
     );
-}
-module.exports.parseMarketShip = (data, locations) => {
-    
 }
 
 module.exports.ExitConnection = class ExitConnection extends Error {
@@ -107,6 +99,14 @@ module.exports.ExitConnection = class ExitConnection extends Error {
         this.name = 'ExitConnection';
     }
 }
-module.exports.sleep = async (ms) => {
-    return new Promise(resolved => { setTimeout(resolved, ms); });
+
+module.exports.parsePurchaseLocation = (data) => {
+    return new dc.PurchaseLocation(
+        data.system,
+        data.location,
+        data.price
+    )
+}
+module.exports.parseMiscData = (data) => {
+    return new dc.MiscData(data);
 }

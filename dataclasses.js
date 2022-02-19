@@ -70,7 +70,7 @@ class MarketShip extends ShipType {
      * @param {string} manufacturer - Manufacturer of ship
      * @param {number} plating - Amount of armor plating on ship
      * @param {number} weapons - Number of weapons on ship
-     * @param {Location[]} purchaseLocations - Array of listings
+     * @param {PurchaseLocation[]} purchaseLocations - Array of listings
      * @param {any[]} restrictedGoods - Array of goods ship cannot carry
      */
     constructor(type, ship_class, maxCargo, loadingSpeed, speed, manufacturer, plating, weapons, purchaseLocations, restrictedGoods) {
@@ -93,10 +93,10 @@ class Location {
      * @param {number} y_pos - Y coordinate of location
      * @param {boolean} allowsConstruction - If construction is allowed
      * @param {string[]} traits - traits of location
-     * @param {number} - number of docked ships
+     * @param {number} dockedShips - number of docked ships
      * @param {string[]} messages - messages attached to location
      */
-    constructor(symbol, type, name, x_pos, y_pos, allowsConstruction, traits, dockedShips, messages, price) {
+    constructor(symbol, type, name, x_pos, y_pos, allowsConstruction, traits, dockedShips, messages) {
         this.symbol = symbol;
         this.type = type;
         this.name = name;
@@ -105,9 +105,15 @@ class Location {
         this.traits = traits;
         this.dockedShips = dockedShips;
         this.messages = messages;
-        this.price = price;
     }
 
+}
+class PurchaseLocation {
+    constructor(system, location, price) {
+        this.system = system;
+        this.location = location;
+        this.price = price;
+    }
 }
 /**
  * Representation of a good
@@ -374,6 +380,14 @@ class Transfer extends Deposit{
         super(good, quanitity);
     }
 }
+/**
+ * This is for data that can't really be put in a data class, like success messages
+ */
+class MiscData {
+    constructor(data) {
+        this.data = data;
+    }
+}
 module.exports = {
     Ship,
     ShipType,
@@ -394,5 +408,7 @@ module.exports = {
     User,
     Jettison,
     Deposit,
-    Transfer
+    Transfer,
+    PurchaseLocation,
+    MiscData
 };

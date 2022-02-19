@@ -27,9 +27,9 @@ module.exports = class TradingPost extends EventEmitter {
 		this.goods = null;
 		this.limit = 2;
 		this.current = 0;
-		this.limiter = new Bottleneck({minTime:3000, maxConcurrent:1})
+		this.limiter = new Bottleneck({minTime:500, maxConcurrent:1})
+		this.status = null;
 	}
-
 	async #getUser() {
 		return await this.getAccount();
 	}
@@ -46,18 +46,19 @@ module.exports = class TradingPost extends EventEmitter {
 				'Authorization':token
 			}
 		});
-		console.log('before getStatus')
-		const getStatus = this.limiter.wrap(this.getStatus);
-
-		const status = await getStatus();
-		console.log(status);
-		console.log('after getStatus');
-		if (!status) {
+		await this.getStatus();
+		if (!this.status) {
 			return;
 		}
-		this.User = await this.limiter.schedule(() => { this.#getUser() });
+		this.User = await this.#getUser();
 		await this.#gatherData();
-		this.emit('ready');
+		if (this.#checkIfReady()) {
+			this.emit('ready');
+		} else {
+			this.emit('error', new Error('Connection Failed'));
+			this.stop_client();
+		}
+		// this.emit('ready');
 		
 
 		
@@ -71,24 +72,13 @@ module.exports = class TradingPost extends EventEmitter {
 	async #gatherData() {
 		const systems = ['OE', 'XV', 'NA7', 'ZY1']
 		for (const item of systems) {
-			const locations = await this.limiter.schedule(() => { this.getSystemLocations(item) });
-			const system = await this.limiter.schedule(() => { this.getSystemInfo(item) });
+			const locations = await this.getSystemLocations(item);
+			const system = await this.getSystemInfo(item);
 			this.systems.push(utils.parseSystem(this, locations, system))
 		}
-		this.goods = await this.limiter.schedule(() => { this.getGoodsTypes() });
-		this.ships = await this.limiter.schedule(() => { this.getAvailableShips() });
-		this.loans = [
-			new Loan(
-				200000,
-				false,
-				40,
-				2,
-				'STARTUP',
-				null,
-				null,
-				null,
-				null)
-		]
+		this.goods = await this.getGoodsTypes()
+		this.ships = await this.getAvailableShips()
+		this.loans = await this.getLoans();
 
 
 	}
@@ -99,7 +89,6 @@ module.exports = class TradingPost extends EventEmitter {
 		&& this.axios_client !== null
 		&& this.goods.length !== 0
 		&& this.ships.length !== 0;
-		console.log(status)
 		return status;
 	}
 
@@ -110,22 +99,31 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse}
 	 */
 	async getStatus() {
-		const res = await this.axios_client.request({
+		const status = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'get',
 			url: '/game/status'
+		})
+		.then(res => { return res })
+		return res;
 		})
 		.catch(err => { 
 			let error = new Error(err.response.data.error.message);
 			error.name = err.response.data.error.code;
 			this.emit('error', error); return false; })
-					if (!res) return;
-		if (res.status === 200) {
-			console.log(res.data.status);
-			return true;
-		} else {
-			this.emit('error', new Error('The API is currently down or under maintenance. Go to https://api.spacetraders.io for more information'));
-			return false;
-		}
+		.then(res => {
+			// console.log(res);
+			if (res.status === 200) {
+				console.log(res.data.status);
+				this.status = true;
+			} else {
+				this.emit('error', new Error('The API is currently down or under maintenance. Go to https://api.spacetraders.io for more information'));
+				this.status = false;
+			}
+		});
+		if (!status) return;
+		return status;
+
+
 	}
 
 	/**
@@ -133,12 +131,31 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {User} - User object containing user data
 	 */
 	async getAccount() {
-		const user = await this.axios_client.request({
+		const user = this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: '/my/account',
+			})
+			.then((res) => { return res; })
+			.catch(err => { throw new Error(err) });
+			return res;
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(res => { return new User(res.data.user.username, res.data.user.shipCount, res.data.user.structureCount, res.data.user.joinedAt, res.data.user.credits, this.token); });
+
+		.catch(err => { 
+			const error = null;
+			try {
+				error = new Error(err.response.data.error.message);
+			} catch (error) {
+				error = new Error(err);
+			}
+			this.emit('error', err); return false; })
+		
+		.then(res => { return new User(
+			res.data.user.username,
+			res.data.user.shipCount,
+			res.data.user.structureCount,
+			res.data.user.joinedAt,
+			res.data.user.credits,
+			this.token); });
 
 		if (!user) return;
 		this.emit('request');
@@ -154,15 +171,22 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getSystemInfo(symbol) {
-		const system = await this.axios_client.request({
+		const system = this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/systems/${symbol.toUpperCase()}`
 		})
-			.catch(err => { 
-			let error = new Error(err.response.data.error.message);
-			error.name = err.response.data.error.code;
+		.then(res => { return res })
+		.catch(err => { throw new Error(err)})
+		return res;
+	})
+
+		.catch(err => { 
+			let error = new Error(err.message.response.data.error.message);
+			error.name = err.message.response.data.error.code;
 			this.emit('error', error); return false; })
-			.then(res => { return new PartialSystem(res.data.system.name, res.data.system.symbol)});
+
+		.then(res => { return new PartialSystem(res.data.system.name, res.data.system.symbol)});
+
 		this.emit('request');
 		if (!system) return;
 		return system;
@@ -173,31 +197,35 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {Location[]} - Array of locations
 	 */
 	async getSystemLocations(symbol) {
-		const locations = await this.axios_client.request({
+		const locations = this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/systems/${symbol.toUpperCase()}/locations`
 		})
-			.catch(err => { 
-			let error = new Error(err.response.data.error.message);
-			error.name = err.response.data.error.code;
-			this.emit('error', error); return false; })
-			.then(res => {
-				let locations = [];
-				res.data.locations.forEach(location => {
-					locations.push(new Location(
-						location.symbol,
-						location.type,
-						location.name,
-						location.x,
-						location.y,
-						location.allowsConstruction,
-						location.traits || null,
-						location.messages || null
-					));
-				});
-				return locations;
+		.then(res => { return res })
+		.catch(err => { throw new Error(err)});
+		return res;
+	})
+		.catch(err => { 
+			let error = new Error(err.message.response.data.error.message);
+			error.name = err.message.response.data.error.code;
+			this.emit('error', error); return false;
+		})
+		.then(res => {
+			let locations = [];
+			res.data.locations.forEach(location => {
+				locations.push(new Location(
+					location.symbol,
+					location.type,
+					location.name,
+					location.x,
+					location.y,
+					location.allowsConstruction,
+					location.traits || null,
+					location.messages || null
+				));
 			});
-		this.emit('request');
+			return locations;
+		});
 		if (!locations) return;
 		return locations;
 		
@@ -208,11 +236,18 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {UserFlightPlan[]} - Https Response
 	 */
 	async getFlightsInSystem(symbol) {
-		const flights = await this.axios_client.request({
+		const flights = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method:'GET',
 			url:`/systems/${symbol}/flight-plans`
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+			.catch(err => {
+				const error = new Error(err.message.response.data.error.message);
+				error.name = err.message.response.data.error.status;
+				this.emit('error', error); return false; })
 			.then(res => { 
 				let flights = [];
 				res.data.flightPlans.forEach(plan => {
@@ -250,7 +285,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {Ship & User} - Https Response
 	 */
 	async buyShip(location_symbol, ship_symbol) {
-		const result = await this.axios_client.request({
+		const result = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'POST',
 			url: '/my/ships',
 			params: {
@@ -261,27 +296,31 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(async res => {
-				const user = await this.getAccount();
-				const ship = res.data.ship;
-				const newShip = new Ship(
-					ship.id,
-					ship.location,
-					ship.x,
-					ship.y,
-					ship.cargo,
-					ship.spaceAvailable,
-					ship.type,
-					ship.maxCargo,
-					ship.loadingSpeed,
-					ship.speed,
-					ship.manufacturer,
-					ship.plating,
-					ship.weapons
-				)
-				return {newShip:newShip, user:user};
-			});
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.then(async res => {
+			const user = await this.getAccount();
+			const ship = res.data.ship;
+			const newShip = new Ship(
+				ship.id,
+				ship.location,
+				ship.x,
+				ship.y,
+				ship.cargo,
+				ship.spaceAvailable,
+				ship.type,
+				ship.maxCargo,
+				ship.loadingSpeed,
+				ship.speed,
+				ship.manufacturer,
+				ship.plating,
+				ship.weapons
+			)
+			return {newShip:newShip, user:user};
+		});
 		if (!result) return;
 		return result;
 	}
@@ -292,43 +331,57 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {MarketShip} MarketShip
 	 */
 	async getMarketShip(ship, system) {
-		const mShip = await this.axios_client.request({
+		const mShip = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'get',
 			url: `/systems/${system.toUpperCase()}/ship-listings`,
 		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err)});
+		return res;
+	})
 			.catch(err => { 
-				let error = new Error(err.response.data.error.message);
-				error.name = err.response.data.error.code;
+				let error = new Error(err.message.response.data.error.message);
+				error.name = err.message.response.data.error.code;
 				this.emit('error', error); return false; })
 			.then(res => {
 				let mShip = null;
 				for (const listing of res.data.shipListings) {
-					console.log(listing);
 					if (listing.type === ship) {
-						console.log(listing.type);
 						mShip = utils.parseMarketShip(listing, system, this);
+						break;
 					}
+					
+				}
+				if (!mShip) {
+					this.emit('error', new Error(`Ship "${ship}" was not found.`));
+					this.stop_client();
 				}
 				return mShip;
 			});
-		if (!mShip) throw new utils.ExitConnection();
-		if (mShip == null) throw new Error(`Ship "${ship}" was not found.`);
-		else return mShip;
+		if (!mShip) return;
+		return mShip;
 	}
 	/**
 	 * Gets the users ships
 	 * @returns {Ship[]} - Array of Ships
 	 */
 	async getUserShips() {
-		const ships = await this.axios_client.request({
+		const ships = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'get',
 			url: '/my/ships',
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+			.catch(err => {
+				const error = new Error(err.message.response.data.error.message);
+				error.name = err.message.response.data.error.status;
+				this.emit('error', error); return false; })
 			.then(res => {
 				let ships = [];
 				for (const ship of res.data.ships) {
-					ships.push(utils.parseShip(ship, this));
+					ships.push(utils.parseShip(ship));
 				}
 				return ships
 			});
@@ -342,29 +395,33 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async getShipInfo(shipID) {
-		const ship = await this.axios_client.request({
+		const ship = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: `/my/ships/${shipID}`
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(res => {
-				const ship = res.data.ship;
-				return new Ship(
-					ship.id,
-					ship.location,
-					ship.x,
-					ship.y,
-					ship.cargo,
-					ship.spaceAvailable,
-					ship.type,
-					ship.maxCargo,
-					ship.loadingSpeed,
-					ship.speed,
-					ship.manufacturer,
-					ship.plating,
-					ship.weapons
-				)
-			});
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.then(res => {
+			const ship = res.data.ship;
+			return new Ship(
+				ship.id,
+				ship.location,
+				ship.x,
+				ship.y,
+				ship.cargo,
+				ship.spaceAvailable,
+				ship.type,
+				ship.maxCargo,
+				ship.loadingSpeed,
+				ship.speed,
+				ship.manufacturer,
+				ship.plating,
+				ship.weapons
+			)
+		});
 		if (!ship) return;
 		return ship;
 	}
@@ -376,7 +433,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {AxiosResponse} - Https Response
 	 */
 	async jettison(id, good, quantity) {
-		const jettison = await this.axios_client.request({
+		const jettison = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method:'POST',
 			url:`/my/ships/${id}/jettison`,
 			params:{
@@ -387,48 +444,60 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(res => {
-				let item = res.data.good;
-				for (const good of this.goods) {
-					if (good.symbol == item) {
-						item = good;
-						break;
-					}
+		.then(res => { return res })
+		.catch(err => {throw new Error(err) });
+		return res;
+	})
+		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.then(res => {
+			let item = res.data.good;
+			for (const good of this.goods) {
+				if (good.symbol == item) {
+					item = good;
+					break;
 				}
-				return new Jettison(
-					item,
-					res.data.quantityRemaining,
-					res.data.shipId
-				)
-			});
+			}
+			return new Jettison(
+				item,
+				res.data.quantityRemaining,
+				res.data.shipId
+			)
+		});
 		if (!jettison) return;
 		return jettison;
 	}
-	// /**
-	//  * Scraps ship for credits
-	//  * @param {string} id - ID of ship
-	//  * @returns {AxiosResponse} - Https Response
-	//  */
-	// async scrap(id) {
-	// 	const res = await this.axios_client.request({
-	// 		method:'DELETE',
-	// 		url:`/my/ships/${id}`
-	// 	})
-	// 		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; });
-	// 	if (!res) return;
-	// 	return res;
-	// }
+	/**
+	 * Scraps ship for credits
+	 * @param {string} id - ID of ship
+	 * @returns {AxiosResponse} - Https Response
+	 */
+	async scrap(id) {
+		const success = this.limiter.schedule(async () => { const res = await this.axios_client.request({
+			method:'DELETE',
+			url:`/my/ships/${id}`
+		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+		.catch(err => { 
+			const error = new Error(err.message.response.data.error.message);
+			error.name = err.message.response.data.error.status;
+			this.emit('error', error); return false; })
+		.then(success => { return utils.parseMiscData(success) });
+		if (!success) return;
+		return success;
+	}
 	/**
 	 * Transfers goods from one ship to another
 	 * @param {string} fromID - Starting Ship
 	 * @param {string} toID - Ship to transfer to
 	 * @param {string} good - Type of good
 	 * @param {number | string} quantity - Quantity to transfer
-	 * @returns {AxiosResponse} - Https Response
+	 * @returns {{ toShip:Ship, fromShip:Ship }}
 	 */
 	async transfer(fromID, toID, good, quantity) {
-		const transfer = await this.axios_client.request({
+		const transfer = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method:'POST',
 			url:`/my/ships/${fromID}/transfer`,
 			params:{
@@ -440,42 +509,24 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
-			.then(res => {
-				const toShipData = res.data.toShip;
-				const fromShipData = res.data.fromShip;
-				const toShip = new Ship(
-					toShipData.id,
-					null,
-					null,
-					null,
-					toShipData.cargo,
-					toShipData.spaceAvailable,
-					toShipData.type,
-					toShipData.maxCargo,
-					null,
-					toShipData.speed,
-					toShipData.manufacturer,
-					toShipData.plating,
-					toShipData.weapons
-				);
-				const fromShip = new Ship(
-					fromShipData.id,
-					null,
-					null,
-					null,
-					fromShipData.cargo,
-					fromShipData.spaceAvailable,
-					fromShipData.type,
-					fromShipData.maxCargo,
-					null,
-					fromShipData.speed,
-					fromShipData.manufacturer,
-					fromShipData.plating,
-					fromShipData.weapons
-				)
-				return {toShip:toShip, fromShip:fromShip}
-			})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+
+		.catch(err => {
+			const error = new Error(err.message.response.data.error.message);
+			error.name = err.message.response.data.error.message;
+			this.emit('error', error); return false; })
+		
+		.then(res => {
+			const toShipData = res.data.toShip;
+			const fromShipData = res.data.fromShip;
+			
+			const toShip = utils.parseShip(toShipData);
+			const fromShip = utils.parseShip(fromShipData);
+			return {toShip:toShip, fromShip:fromShip}
+		});
 		if (!transfer) return;
 		return transfer;
 	}
@@ -648,7 +699,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {PartialShip[]} - Array of Ship Objects
 	 */
 	async getAvailableShips(ship_class=null) {
-		const ships = await this.axios_client.request({
+		const ships = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'get',
 			url: '/types/ships',
 			params: {
@@ -658,29 +709,31 @@ module.exports = class TradingPost extends EventEmitter {
 				return qs.stringify(params);
 			}
 		})
-			.catch(err => { 
-			let error = new Error(err.response.data.error.message);
-			error.name = err.response.data.error.code;
-			this.emit('error', error); return false; })
-			.then(res => {
-				let ships = [];
-				for (const ship of res.data.ships) {
-					ships.push(new ShipType(
-						ship.type,
-						ship.maxCargo,
-						ship.loadingSpeed,
-						ship.speed,
-						ship.manufacturer,
-						ship.plating,
-						ship.weapons
-					));
-		
-				}
-				return ships;
-			});
-		this.emit('request');
+		.then(res => { return res; })
+		.catch(err => { return err; });
+		return res;
+	})
+		.catch(err => { 
+		let error = new Error(err.response.data.error.message);
+		error.name = err.response.data.error.code;
+		this.emit('error', error); return false; })
+		.then(res => {
+			let ships = [];
+			for (const ship of res.data.ships) {
+				ships.push(new ShipType(
+					ship.type,
+					ship.maxCargo,
+					ship.loadingSpeed,
+					ship.speed,
+					ship.manufacturer,
+					ship.plating,
+					ship.weapons
+				));
+	
+			}
+			return ships;
+		});
 		if (!ships) return;
-		
 		
 		return ships;
 	}
@@ -690,13 +743,17 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {Good[]} - Array of Goods
 	 */
 	async getGoodsTypes() {
-		const goods = await this.axios_client.request({
+		const goods = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method:'GET',
 			url:'types/goods'
 		})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) })
+		return res;
+	})
 			.catch(err => { 
-				let error = new Error(err.response.data.error.message);
-				error.name = err.response.data.error.code;
+				let error = new Error(err.message.response.data.error.message);
+				error.name = err.message.response.data.error.code;
 				this.emit('error', error); return false; })
 			.then(res => {
 				const goods = [];
@@ -709,7 +766,6 @@ module.exports = class TradingPost extends EventEmitter {
 				});
 				return goods;
 			});
-		this.emit('request');
 		if (!goods) return;
 		return goods;
 	}
@@ -747,24 +803,31 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @returns {Loan[]} - Array of loans
 	 */
 	async getLoans() {
-		const loans = await this.axios_client.request({
+		const loans = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'GET',
 			url: '/types/loans'
 		})
-			.catch(err => { this.emit('httpError', err); return false; })
-			.then(res => {
-				let loans = [];
-				res.data.loans.forEach(loan => {
-					loans.push(new Loan(
-						loan.type,
-						loan.amount,
-						loan.rate,
-						loan.termInDays,
-						loan.collateralRequired
-					));
-				});
-				return loans;
-			})
+		.then(res => { return res })
+		.catch(err => { throw new Error(err) });
+		return res;
+	})
+		.catch(err => {
+			const error = new Error(err.message.response.data.error.message);
+			error.name = err.message.response.error.status;
+			this.emit('error', error); return false; })
+		.then(res => {
+			let loans = [];
+			res.data.loans.forEach(loan => {
+				loans.push(new Loan(
+					loan.type,
+					loan.amount,
+					loan.rate,
+					loan.termInDays,
+					loan.collateralRequired
+				));
+			});
+			return loans;
+		})
 		if (!loans) return;
 		return loans;
 	}
