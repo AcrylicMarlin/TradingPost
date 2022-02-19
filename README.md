@@ -1,6 +1,8 @@
 # TradingPost
 TradingPost is an API wrapper for the SpaceTraders API. 
-
+> Note: Due to ratelimits, the wrapper is configured to only run 2 requests per second.
+> It also only allows for one request to happen at a time.
+> This may or may not change in the future
 ## Events
 There is two events
 - ready
@@ -10,7 +12,7 @@ Each can be handled like this
 #### Ready event
 ```js
 // wrapper represents the TradingPost object
-wrapper.on('ready', (// no args are given in the event) => {
+wrapper.on('ready', (/* no args are given in the event */) => {
     /*
     Do whatever you want in this event to signify wrapper is ready
     Note: Starting the api takes up some of the ratelimit. 
@@ -21,12 +23,11 @@ wrapper.on('ready', (// no args are given in the event) => {
 #### Error event
 ```js
 //wrapper represents the TradingPost object
-wrapper.on('error', (err) => {
+wrapper.on('error', (err /* Will always be an error object*/) => {
     /*
     Do whatever you want to handle the error in this event
-    Parameter err will always be an Error object.
     */
-})
+});
 ```
 ## Objects
 There are many objects representing each object in the SpaceTraders Universe
@@ -46,9 +47,13 @@ There are many objects representing each object in the SpaceTraders Universe
 - The UserFlightPlan object represents a flightplan from another user.
 - The FlightPlan object represents one of your flightplans.
 - The Order object represents a completed order
-- MarketOrder represents a full market order. 
+- The MarketOrder object represents a full market order. 
     Containing an order object represent the good order. A ship object representing the ship that the goods went to, and the amount of credits you have left.
-- User represents a SpaceTraders user. Currently this only represents you.
+- The User object represents a SpaceTraders user. Currently this only represents you.
 - The Jettison object represents a finished jettison request.
+- The Deposit object represents a deposit into a structure.
+- The Transfer object represents a transfer from one ship to another.
+
+
 
 
