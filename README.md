@@ -48,6 +48,8 @@ There are many objects representing each object in the SpaceTraders Universe
 - The Jettison object represents a finished jettison request.
 - The Deposit object represents a deposit into a structure.
 - The Transfer object represents a transfer from one ship to another.
+- The Warp Object represents a FlightPlan that ends in another system.
+- The MiscData object represents random data, normally it's just a success message
 
 
 

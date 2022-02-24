@@ -1,1 +1,1 @@
-module.exports = require('./TradingPost');
+export default require('./TradingPost');
