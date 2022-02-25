@@ -2,9 +2,9 @@ import TradingPost from '../TradingPost';
 import {Deposit, FlightPlan, Good, Jettison, Listing, Loan, LoanType, MarketShip, MiscData, PartialSystem, PurchaseLocation, Ship, ShipType, Structure, StructureType, System, SystemLocation, Transfer, User, Warp} from './dataclasses'
 
 
-export function parseMarketShip (data:any): MarketShip {
-    const locations = [];
-    data.purchaseLocations.forEach((location) => {
+export function parseMarketShip (data:any) {
+    let locations: PurchaseLocation[] = [];
+    data.purchaseLocations.forEach((location:any) => {
         locations.push(parsePurchaseLocation(location));
     })
     return new MarketShip(
@@ -20,13 +20,13 @@ export function parseMarketShip (data:any): MarketShip {
         data.restrictedGoods
     )
 }
-export function parseSystem (locations:Location[], system:PartialSystem):System {
+export function parseSystem (locations:Location[], system:PartialSystem) {
     return new System(system.name, system.symbol, locations);
 }
-export function parsePartialSystem (data:any): PartialSystem {
+export function parsePartialSystem (data:any) {
     return new PartialSystem(data.name, data.symbol);
 }
-export function parseStructure (data:any): Structure {
+export function parseStructure (data:any) {
     return new Structure(
         data.active,
         data.consumes,
@@ -39,30 +39,19 @@ export function parseStructure (data:any): Structure {
         data.type
     );
 }
-module.exports.parseStructureType = (data) => {
-    return new StructureType(
-        data.type,
-        data.name,
-        data.price,
-        data.allowedLocationTypes,
-        data.allowedPlanetTraits,
-        data.consumes,
-        data.produces
-    );
-}
-export function parseDeposit (data:any):Deposit {
+export function parseDeposit (data:any) {
     return new Deposit(
         data.good,
         data.quantity
     );
 }
-export function parseTransfer (data:any):Transfer {
+export function parseTransfer (data:any) {
     return new Transfer(
         data.good,
         data.quantity
     );
 }
-export function parseShip (data:any):Ship {
+export function parseShip (data:any) {
     return new Ship(
         data.id || null,
         data.location || null,
@@ -88,14 +77,14 @@ export class ExitConnection extends Error {
     }
 }
 
-export function parsePurchaseLocation (data:any):PurchaseLocation {
+export function parsePurchaseLocation (data:any) {
     return new PurchaseLocation(
         data.system,
         data.location,
         data.price
     )
 }
-export function parseMiscData (data):MiscData {
+export function parseMiscData (data:any) {
     return new MiscData(data);
 }
 export class ShipNotFound extends Error {
@@ -106,7 +95,7 @@ export class ShipNotFound extends Error {
         this.name = 'ShipNotFound'
     }
 }
-export function parseFlightPlan (data:any):FlightPlan {
+export function parseFlightPlan (data:any) {
     return new FlightPlan(
         data.id,
         data.shipId,
@@ -121,7 +110,7 @@ export function parseFlightPlan (data:any):FlightPlan {
         data.timeRemainingInSeconds
     );
 }
-export function parseWarp(data:any):Warp {
+export function parseWarp(data:any) {
     return new Warp(
         data.id,
         data.spiId,
@@ -136,7 +125,7 @@ export function parseWarp(data:any):Warp {
         data.timeRemaingInSeconds
     );
 }
-export function parseLoanType(data:any):LoanType {
+export function parseLoanType(data:any) {
     return new LoanType(
         data.type,
         data.amount,
@@ -145,26 +134,25 @@ export function parseLoanType(data:any):LoanType {
         data.collateralRequired
     );
 }
-export function parseLoan(data:any, loans:Loan[]):Loan {
-    let loanInfo:LoanType = null;
+export function parseLoan(data:any, loans:Loan[]) {
     for (const loan of loans) {
         if (loan.type == data.type) {
-            loanInfo=loan;
+            return new Loan(
+                data.repaymentAmount,
+                loan.collateralRequired,
+                loan.rate,
+                loan.term,
+                loan.type,
+                data.due,
+                data.id,
+                data.status,
+                data.repaymentAmount
+            )
         }
     }
-    return new Loan(
-        data.repaymentAmount,
-        loanInfo.collateralRequired,
-        loanInfo.rate,
-        loanInfo.term,
-        loanInfo.type,
-        data.due,
-        data.id,
-        data.status,
-        data.repaymentAmount
-    )
+
 }
-export function parseStructureType(data:any):StructureType {
+export function parseStructureType(data:any) {
     return new StructureType(
         data.type,
         data.name,
@@ -175,14 +163,14 @@ export function parseStructureType(data:any):StructureType {
         data.produces
     )
 }
-export function parseGood(data:any):Good{
+export function parseGood(data:any) {
     return new Good(
         data.name,
         data.symbol,
         data.volume
     )
 }
-export function parseShipType(data:any): ShipType {
+export function parseShipType(data:any) {
     return new ShipType(
         data.class,
         data.type,
@@ -194,7 +182,7 @@ export function parseShipType(data:any): ShipType {
         data.weapons
     )
 }
-export function parseListing(data:any): Listing {
+export function parseListing(data:any) {
     return new Listing(
         data.symbol,
         data.volumePerUnit,
@@ -205,7 +193,7 @@ export function parseListing(data:any): Listing {
         data.quantityAvailable
     );
 }
-export function parseSystemLocation(data:any): SystemLocation {
+export function parseSystemLocation(data:any) {
     return new SystemLocation(
         data.symbol,
         data.type,
@@ -218,14 +206,14 @@ export function parseSystemLocation(data:any): SystemLocation {
         data.messages || null
     )
 }
-export function parseJettison(data:any): Jettison {
+export function parseJettison(data:any) {
     return new Jettison(
         data.good,
         data.quantityRemaining,
         data.shipId
     )
 }
-export function parseUser(data:any, client:TradingPost): User {
+export function parseUser(data:any, client:any) {
     return new User(
         data.username,
         data.shipCount,
@@ -247,5 +235,6 @@ export class InvalidToken extends Error {
         this.name = 'InvalidToken'
     }
 }
+export class Failure {};
 
 

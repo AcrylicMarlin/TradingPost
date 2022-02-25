@@ -5,7 +5,6 @@ const { default: Bottleneck } = require('bottleneck');
 const { EventEmitter } = require('events');
 const { 
 	Ship,
-	ShipType,
 	MarketShip,
 	SystemLocation,
 	Good,
@@ -37,7 +36,7 @@ const utils = require('./utils/utils');
  * @author AcrylicMarlin
  * @version 1.0.0-Beta
  */
-export default class TradingPost extends EventEmitter {
+module.exports = class TradingPost extends EventEmitter {
 
 	constructor() {
 		super();
@@ -124,7 +123,7 @@ export default class TradingPost extends EventEmitter {
 	 * Gets the status of game servers
 	 */
 	async getStatus() {
-		const status = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
+		await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 			method: 'get',
 			url: '/game/status'
 		})

@@ -1,1 +1,2 @@
-export default require('./TradingPost');
+const TradingPost = require('./TradingPost');
+module.exports = TradingPost;

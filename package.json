@@ -1,5 +1,5 @@
 {
-  "name": "@acrylicmarlin/tradingpost",
+  "name": "tradingpost.js",
   "version": "1.0.0-Beta",
   "description": "API Wrapper written in JS for the SpaceTraders API",
   "main": "index.js",
@@ -29,11 +29,7 @@
     "url": "https://github.com/AcrylicMarlin/TradingPost/issues"
   },
   "homepage": "https://github.com/AcrylicMarlin/TradingPost#readme",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
-  },
   "devDependencies": {
-    "@types/node": "^17.0.18",
     "typescript": "^4.5.5"
   }
 }
