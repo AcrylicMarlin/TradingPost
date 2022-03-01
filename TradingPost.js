@@ -69,8 +69,9 @@ module.exports = class TradingPost extends EventEmitter {
 		this.axios_client = axios.create({
 			baseURL:'https://api.spacetraders.io',
 			headers: {
-				'Authorization':token
-			}
+				'Authorization':token,
+				'User-Agent':'tradingpost.js'
+			},
 		});
 		await this.getStatus();
 		if (!this.status) {
@@ -145,7 +146,7 @@ module.exports = class TradingPost extends EventEmitter {
 			return false;
 		})
 		.then(res => {
-			// console.log(res);
+			console.log(res);
 			if (res.status === 200) {
 				this.status = true;
 			} else {
