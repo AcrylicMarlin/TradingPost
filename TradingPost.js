@@ -25,8 +25,8 @@ const {
 	Deposit,
 	Transfer,
 	MiscData
-} = require('./utils/dataclasses');
-const utils = require('./utils/utils');
+} = require('./utils/src/dataclasses');
+const utils = require('./utils/src/utils');
 
 
 
@@ -34,19 +34,20 @@ const utils = require('./utils/utils');
  * Trading Post
  * The communicator for the spacetraders api
  * @author AcrylicMarlin
- * @version 1.0.0-Beta
+ * @version 1.0.2-Beta
  */
 module.exports = class TradingPost extends EventEmitter {
 
 	constructor() {
 		super();
-		this.User;
-		this.token = null;
-		this.axios_client = null;
-		this.systems = [];
-		this.goods = null;
-		this.limiter = new Bottleneck({minTime:500, maxConcurrent:1})
-		this.status = null;
+		this.User=null;
+		this.token=null;
+		this.axios_client=null;
+		this.systems=null;
+		this.goods=null;
+		this.limiter=null;
+		this.status=null;
+		this.structures=null;
 	}
 	async #getUser() {
 		return await this.getAccount();
@@ -64,7 +65,7 @@ module.exports = class TradingPost extends EventEmitter {
 			token = 'Bearer ' + token;
 		}
 		this.token = token;
-
+		this.limiter = new Bottleneck({minTime:750, maxConcurrent:1})
 		this.axios_client = axios.create({
 			baseURL:'https://api.spacetraders.io',
 			headers: {
@@ -95,25 +96,31 @@ module.exports = class TradingPost extends EventEmitter {
 		throw new utils.ExitConnection();
 	}
 	async #gatherData() {
-		const systems = ['OE', 'XV', 'NA7', 'ZY1']
-		for (const item of systems) {
+		const systemsSymbols = ['OE', 'XV', 'NA7', 'ZY1']
+		const systems = [];
+		for (const item of systemsSymbols) {
 			const locations = await this.getSystemLocations(item);
 			const system = await this.getSystemInfo(item);
-			this.systems.push(utils.parseSystem(this, locations, system))
+			systems.push(utils.parseSystem(locations, system))
 		}
+		this.systems = systems;
 		this.goods = await this.getGoodsTypes()
-		this.ships = await this.getAvailableShips()
+		this.ships = await this.getShipTypes()
+		this.structures = await this.getStructureTypes();
 		this.loans = await this.getLoans();
+		
 
 
 	}
 	#checkIfReady() {
 		const status = this.systems.length !== 0
 		&& this.User instanceof User
-		&& this.token !== null
-		&& this.axios_client !== null
-		&& this.goods.length !== 0
-		&& this.ships.length !== 0;
+		&& typeof this.token !== null
+		&& typeof this.axios_client !== null
+		&& typeof this.goods.length !== null
+		&& typeof this.ships.length !== null
+		&& typeof this.structures !== null
+		&& this.limiter instanceof Bottleneck
 		return status;
 	}
 
@@ -128,12 +135,15 @@ module.exports = class TradingPost extends EventEmitter {
 			url: '/game/status'
 		})
 		.then(res => { return res })
+		.catch(err => { throw err });
 		return res;
 		})
 		.catch(err => { 
-			let error = new Error(err.response.data.error.message);
+			const error = new Error(err.response.data.error.message);
 			error.name = err.response.data.error.code;
-			this.emit('error', error); return false; })
+			this.emit('error', error);
+			return false;
+		})
 		.then(res => {
 			// console.log(res);
 			if (res.status === 200) {
@@ -157,18 +167,16 @@ module.exports = class TradingPost extends EventEmitter {
 			url: '/my/account',
 			})
 			.then((res) => { return res; })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 
 		.catch(err => { 
-			const error = null;
-			try {
-				error = new Error(err.response.data.error.message);
-			} catch (error) {
-				error = new Error(err);
-			}
-			this.emit('error', err); return false; })
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		
 		.then(res => { return utils.parseUser(res.data.user, this)});
 
@@ -190,18 +198,18 @@ module.exports = class TradingPost extends EventEmitter {
 			url: `/systems/${symbol.toUpperCase()}`
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err)})
+		.catch(err => { throw err })
 		return res;
 	})
 
 		.catch(err => { 
-			let error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.code;
-			this.emit('error', error); return false; })
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 
-		.then(res => { return utils.parsePartialSystem(res.data.system)});
-
-		this.emit('request');
+		.then(res => {return utils.parsePartialSystem(res.data.system)});
 		if (!system) return;
 		return system;
 	}
@@ -216,16 +224,18 @@ module.exports = class TradingPost extends EventEmitter {
 			url: `/systems/${symbol.toUpperCase()}/locations`
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err)});
+		.catch(err => { throw err });
 		return res;
 	})
 		.catch(err => { 
-			let error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.code;
-			this.emit('error', error); return false;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
 		})
 		.then(res => {
 			let locations = [];
+			// console.log(res.data.locations);
 			res.data.locations.forEach(location => {
 				locations.push(utils.parseSystemLocation(location));
 			});
@@ -242,25 +252,28 @@ module.exports = class TradingPost extends EventEmitter {
 	 */
 	async getFlightsInSystem(symbol) {
 		const flights = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
-			method:'GET',
-			url:`/systems/${symbol}/flight-plans`
+				method:'GET',
+				url:`/systems/${symbol}/flight-plans`
+			})
+			.then(res => { return res })
+			.catch(err => { throw err });
+			return res;
 		})
-		.then(res => { return res })
-		.catch(err => { throw new Error(err) });
-		return res;
-	})
-			.catch(err => {
-				const error = new Error(err.message.response.data.error.message);
-				error.name = err.message.response.data.error.status;
-				this.emit('error', error); return false; })
-			.then(res => { 
-				let flights = [];
-				res.data.flightPlans.forEach(plan => {
-					flights.push(utils.parseFlightPlan(plan));
-					
-				});
-				return flights;
+			
+		.then(res => { 
+			let flights = [];
+			res.data.flightPlans.forEach(plan => {
+				flights.push(utils.parseFlightPlan(plan));
+				
 			});
+			return flights;
+		})
+		.catch(err => {
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		
 		if (!flights) return;
 		return flights;
@@ -293,10 +306,15 @@ module.exports = class TradingPost extends EventEmitter {
 			}
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err) });
+		.catch(err => { throw err });
 		return res;
 	})
-		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.catch(err => {
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		.then(async res => {
 			const ship = res.data.ship;
 			const newShip = utils.parseShip(ship);
@@ -313,32 +331,35 @@ module.exports = class TradingPost extends EventEmitter {
 	 */
 	async getMarketShip(ship, system) {
 		const mShip = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
-			method: 'get',
-			url: `/systems/${system.toUpperCase()}/ship-listings`,
+				method: 'get',
+				url: `/systems/${system.toUpperCase()}/ship-listings`,
+			})
+			.then(res => { return res })
+			.catch(err => { throw err });
+			return res;
 		})
-		.then(res => { return res })
-		.catch(err => { throw new Error(err)});
-		return res;
-	})
-			.catch(err => { 
-				let error = new Error(err.message.response.data.error.message);
-				error.name = err.message.response.data.error.code;
-				this.emit('error', error); return false; })
-			.then(res => {
-				let mShip = null;
-				for (const listing of res.data.shipListings) {
-					if (listing.type === ship) {
-						mShip = utils.parseMarketShip(listing, system, this);
-						break;
-					}
-					
+
+		.then(res => {
+			let mShip = null;
+			for (const listing of res.data.shipListings) {
+				if (listing.type === ship) {
+					mShip = utils.parseMarketShip(listing, system, this);
+					break;
 				}
-				if (!mShip) {
-					this.emit('error', new utils.ShipNotFound(ship));
-					return new MarketShip(null, null, null, null, null, null, null, null, [], []);
-				}
-				return mShip;
-			});
+				
+			}
+			if (!mShip) {
+				this.emit('error', new utils.ShipNotFound(ship));
+				return new MarketShip(null, null, null, null, null, null, null, null, [], []);
+			}
+			return mShip;
+		})
+		.catch(err => { 
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		if (!mShip) return;
 		return mShip;
 	}
@@ -352,13 +373,15 @@ module.exports = class TradingPost extends EventEmitter {
 			url: '/my/ships',
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err) });
+		.catch(err => { throw err });
 		return res;
 	})
 			.catch(err => {
-				const error = new Error(err.message.response.data.error.message);
-				error.name = err.message.response.data.error.status;
-				this.emit('error', error); return false; })
+				const error = new Error(err.response.data.error.message);
+				error.name = err.response.data.error.code;
+				this.emit('error', error);
+				return false;
+			})
 			.then(res => {
 				let ships = [];
 				for (const ship of res.data.ships) {
@@ -384,7 +407,12 @@ module.exports = class TradingPost extends EventEmitter {
 		.catch(err => { throw new Error(err) });
 		return res;
 	})
-		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.catch(err => {
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		.then(res => {
 			const ship = res.data.ship;
 			return utils.parseShip(ship);
@@ -412,10 +440,15 @@ module.exports = class TradingPost extends EventEmitter {
 			}
 		})
 		.then(res => { return res })
-		.catch(err => {throw new Error(err) });
+		.catch(err => {throw err });
 		return res;
 	})
-		.catch(err => { this.emit('error', new Error(err.response.data.error.message)); return false; })
+		.catch(err => {
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		.then(res => {
 			return utils.parseJettison(res.data);
 		});
@@ -433,13 +466,15 @@ module.exports = class TradingPost extends EventEmitter {
 			url:`/my/ships/${id}`
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err) });
+		.catch(err => { throw err});
 		return res;
 	})
 		.catch(err => { 
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.status;
-			this.emit('error', error); return false; })
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
 		.then(success => { return utils.parseMiscData(success) });
 		if (!success) return;
 		return success;
@@ -466,13 +501,13 @@ module.exports = class TradingPost extends EventEmitter {
 			}
 		})
 		.then(res => { return res })
-		.catch(err => { throw new Error(err) });
+		.catch(err => { throw err });
 		return res;
 	})
 
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -499,19 +534,19 @@ module.exports = class TradingPost extends EventEmitter {
 				url: '/my/loans'
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
 		.then(res => {
 			let loans = [];
 			for (const loan of res.data.loans) {
-				loans.push(utils.parseLoan(loan));
+				loans.push(utils.parseLoan(loan, this.loans));
 			}
 			return loans;
 		});
@@ -535,12 +570,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -563,12 +598,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url: `/my/loans/${loanID}`,
 			})
 			.then(res => { return res;})
-			.catch(err => { return err });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -597,12 +632,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url:`/locations/${symbol}`
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -618,20 +653,14 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @param {string} location - Location symbol
 	 * @returns {Listing} - Https Response
 	 */
-	async getLocationMarket() {
+	async getLocationMarket(location) {
 		const listings = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 				method:'GET',
 				url:`/locations/${location}/marketplace`
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
-		})
-		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
-			this.emit('error', error);
-			return false;
 		})
 		.then(res => {
 			let listings = [];
@@ -640,8 +669,14 @@ module.exports = class TradingPost extends EventEmitter {
 				listings.push(utils.parseListing(item));
 			}
 			return listings;
-		});
-		if (!listings) return false;
+		})
+		.catch(err => {
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
+			this.emit('error', error);
+			return false;
+		})
+		if (!listings) return;
 		return listings;
 	}
 
@@ -651,7 +686,7 @@ module.exports = class TradingPost extends EventEmitter {
 	 * @param {string} ship_class - Sort by class (optional)
 	 * @returns {ShipType[]} - Array of ShipType Objects
 	 */
-	async getAvailableShips(ship_class=null) {
+	async getShipTypes(ship_class=null) {
 		const ships = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 				method: 'get',
 				url: '/types/ships',
@@ -663,12 +698,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res; })
-			.catch(err => { return err; });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -695,12 +730,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url:'types/goods'
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) })
+			.catch(err => { throw err })
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -718,18 +753,18 @@ module.exports = class TradingPost extends EventEmitter {
 	 * Gets all structures
 	 * @returns {Structure[]} - Array of structures
 	 */
-	async getStructures() {
+	async getStructureTypes() {
 		const structures = await this.limiter.schedule(async () => { const res = await this.axios_client.request({
 				method:'GET',
 				url:'/types/structures'
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -755,12 +790,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url: '/types/loans'
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.error.status;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -795,12 +830,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) })
+			.catch(err => { throw err })
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -832,12 +867,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -873,12 +908,12 @@ module.exports = class TradingPost extends EventEmitter {
 
 			})
 			.then(res => { return res })
-			.catch(err => { return err });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -913,12 +948,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res; })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -942,12 +977,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url:`/my/structures/${structure}`
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -967,12 +1002,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url:'/my/structures'
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -984,6 +1019,9 @@ module.exports = class TradingPost extends EventEmitter {
 			return structures;
 		})
 		if (!structures) return;
+		if (structures.length === 0) {
+			this.emit('error', new utils.NoStructures())
+		}
 		return structures;
 	}
 	// Flight plan commands
@@ -998,12 +1036,12 @@ module.exports = class TradingPost extends EventEmitter {
 				url:`/my/flight-plans/${flight_plan}`
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -1032,12 +1070,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})
@@ -1067,12 +1105,12 @@ module.exports = class TradingPost extends EventEmitter {
 				}
 			})
 			.then(res => { return res })
-			.catch(err => { throw new Error(err) });
+			.catch(err => { throw err });
 			return res;
 		})
 		.catch(err => {
-			const error = new Error(err.message.response.data.error.message);
-			error.name = err.message.response.data.error.message;
+			const error = new Error(err.response.data.error.message);
+			error.name = err.response.data.error.code;
 			this.emit('error', error);
 			return false;
 		})

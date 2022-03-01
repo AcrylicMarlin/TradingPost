@@ -1,4 +1,3 @@
-import TradingPost from '../TradingPost';
 import {Deposit, FlightPlan, Good, Jettison, Listing, Loan, LoanType, MarketShip, MiscData, PartialSystem, PurchaseLocation, Ship, ShipType, Structure, StructureType, System, SystemLocation, Transfer, User, Warp} from './dataclasses'
 
 
@@ -202,7 +201,6 @@ export function parseSystemLocation(data:any) {
         data.y,
         data.allowsConstruction,
         data.traits || null,
-        data.dockedShips,
         data.messages || null
     )
 }
@@ -235,6 +233,11 @@ export class InvalidToken extends Error {
         this.name = 'InvalidToken'
     }
 }
-export class Failure {};
+export class NoStructures extends Error {
+    constructor(message='User has no structures') {
+        super(message);
+        this.name='NoStructures'
+    }
+}
 
 

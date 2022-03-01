@@ -70,16 +70,14 @@ export class SystemLocation {
     public coordinates:number[];
     public allowsConstruction:boolean;
     public traits:string[];
-    public dockedShips:any[];
     public messages: string[];
-    constructor(symbol: string, type: string, name: string, x_pos: number, y_pos: number, allowsConstruction: boolean, traits: string[], dockedShips: any[], messages: string[]) {
+    constructor(symbol: string, type: string, name: string, x_pos: number, y_pos: number, allowsConstruction: boolean, traits: string[], messages: string[]) {
         this.symbol = symbol;
         this.type = type;
         this.name = name;
         this.coordinates = [x_pos, y_pos];
         this.allowsConstruction = allowsConstruction;
         this.traits = traits;
-        this.dockedShips = dockedShips;
         this.messages = messages;
     }
 
@@ -197,7 +195,7 @@ export class FlightPlan extends UserFlightPlan {
     public terminatedAt:string;
     public timeRemainingInSeconds:number;
     constructor(id: string, shipId: string, createdAt: string, arrivesAt: string, destination: string, departure: string, distance: number, fuelConsumed: number, fuelRemaining: number, terminatedAt: string, timeRemaingInSeconds: number) {
-        super(id, shipId, createdAt, arrivesAt, destination, departure, null, null);
+        super(id, shipId, createdAt, arrivesAt, destination, departure, '', '');
         this.distance = distance;
         this.fuelConsumed = fuelConsumed;
         this.fuelRemaining = fuelRemaining;
@@ -211,7 +209,7 @@ export class Order {
     public quantity:number;
     public pricePerUnit:number;
     public total:number;
-    constructor(good, quantity, pricePerUnit, total) {
+    constructor(good: string, quantity: number, pricePerUnit: number, total: number) {
         this.good = good;
         this.quantity = quantity;
         this.pricePerUnit = pricePerUnit;
@@ -316,7 +314,7 @@ export class Transfer extends Deposit{
  */
 export class MiscData {
     public data:any;
-    constructor(data) {
+    constructor(data: any) {
         this.data = data;
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "tradingpost.js",
-  "version": "1.0.0-Beta",
+  "version": "1.0.2-Beta",
   "description": "API Wrapper written in JS for the SpaceTraders API",
   "main": "index.js",
   "scripts": {

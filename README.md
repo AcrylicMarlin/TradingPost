@@ -1,6 +1,6 @@
 # TradingPost
 TradingPost is an API wrapper for the SpaceTraders API. 
-> Note: Due to ratelimits, the wrapper is configured to only run 2 requests per second.
+> Note: Due to ratelimits, the wrapper is configured to only run 2 requests per 1.5 seconds.
 > It also only allows for one request to happen at a time.
 > This may or may not change in the future
 ## Events
